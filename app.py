@@ -75,14 +75,18 @@ def show_dashboard():
     hora_guardada = datetime.datetime.strptime(hora_guardada_str, '%H:%M:%S').time()
     hora_seleccionada = st.time_input("Elige la hora para recibir el correo:", value=hora_guardada)
 
+    # Campo para el email de envío
+    email_guardado = preferencias.get('email', st.session_state.user['email'])
+    email_seleccionado = st.text_input("Email para recibir las alertas:", value=email_guardado)
+
     if st.button("Guardar Preferencias"):
         try:
             # Usamos upsert para insertar o actualizar las preferencias
             datos_para_guardar = {
                 "user_id": user_id,
-                "email": st.session_state.user['email'],
                 "municipios": municipios_seleccionados,
-                "hora_envio": str(hora_seleccionada)
+                "hora_envio": str(hora_seleccionada),
+                "email": email_seleccionado
             }
             supabase.table('preferencias').upsert(datos_para_guardar, on_conflict='user_id').execute()
             st.success("¡Preferencias guardadas con éxito!")
