@@ -1,0 +1,87 @@
+/* --- Importar Fuente Profesional --- */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
+
+/* --- Variables de Diseño --- */
+:root {
+    --primary-color: #2B6CB0;
+    --primary-color-hover: #2C5282;
+    --secondary-color: #EDF2F7;
+    --card-bg-color: #FFFFFF;
+    --text-color: #2D3748;
+    --subtle-text-color: #718096;
+    --accent-color: #38B2AC;
+    --border-color: #E2E8F0;
+    --border-radius: 8px;
+    --box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
+    --transition-speed: 0.2s;
+}
+
+/* --- Estilos Globales --- */
+body {
+    font-family: 'Poppins', sans-serif;
+    color: var(--text-color);
+    background-color: var(--secondary-color);
+}
+
+.stApp {
+    background-color: var(--secondary-color);
+}
+
+/* --- Ocultar elementos de Streamlit --- */
+#MainMenu, footer, header { display: none; }
+
+/* --- Contenedores y Tarjetas --- */
+div[data-testid="stVerticalBlock"] > [style*="flex-direction: column;"] > [data-testid="stVerticalBlock"] {
+    background-color: var(--card-bg-color);
+    border-radius: var(--border-radius);
+    border: 1px solid var(--border-color);
+    padding: 2em;
+    box-shadow: var(--box-shadow);
+}
+
+/* --- Títulos y Texto --- */
+h1 { font-weight: 700; color: var(--primary-color); }
+h2 { font-weight: 600; color: var(--text-color); }
+h3 { font-weight: 600; color: var(--text-color); font-size: 1.25rem; }
+
+/* --- Estilo de Widgets --- */
+.stButton > button {
+    border-radius: var(--border-radius);
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    font-weight: 600;
+    transition: transform var(--transition-speed) ease, background-color var(--transition-speed) ease;
+}
+.stButton > button:hover {
+    transform: translateY(-2px);
+    background-color: var(--primary-color-hover);
+}
+
+.stTextInput input, .stMultiSelect div[data-baseweb="select"] > div, .stTimeInput input {
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius) !important;
+    background-color: #F7FAFC;
+    transition: border-color var(--transition-speed) ease, box-shadow var(--transition-speed) ease;
+}
+.stTextInput input:focus, .stMultiSelect div[data-baseweb="select"]:focus-within > div, .stTimeInput input:focus {
+    border-color: var(--primary-color) !important;
+    box-shadow: 0 0 0 2px rgba(43, 108, 176, 0.2);
+}
+
+/* Estilo para el contenedor de la página de login */
+.login-container {
+    padding-top: 3rem;
+    padding-bottom: 3rem;
+}
+
+/* Estilo para la tarjeta de login */
+.login-card {
+    background-color: var(--card-bg-color);
+    border-radius: var(--border-radius);
+    border: 1px solid var(--border-color);
+    padding: 3em;
+    box-shadow: var(--box-shadow);
+    text-align: center;
+}

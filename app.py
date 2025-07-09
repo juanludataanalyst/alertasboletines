@@ -1,12 +1,20 @@
 import streamlit as st
 from auth import show_auth_page
 from supabase_client import supabase
-import json
 import datetime
+import time # Importar el módulo time
 
-st.set_page_config(page_title="Alertas de Boletines", page_icon=":bell:")
+# --- CONFIGURACIÓN DE LA PÁGINA ---
+st.set_page_config(page_title="Alertas de Boletines", page_icon="🔔", layout="wide")
 
-# Lista de municipios (reemplazar con la lista completa)
+# --- CARGAR CSS EXTERNO ---
+def load_css(file_name):
+    with open(file_name) as f:
+        st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
+
+load_css("style.css")
+
+# --- LISTAS DE DATOS ---
 MUNICIPIOS_BADAJOZ = [
     "Acedera", "Aceuchal", "Ahillones", "Alange", "La Albuera", "Alburquerque",
     "Alconchel", "Alconera", "Aljucén", "Almendral", "Almendralejo", "Arroyo de San Serván",
@@ -44,72 +52,83 @@ MUNICIPIOS_BADAJOZ = [
 ]
 BOLETINES = ["DOE", "BOP", "BOE"]
 
-# Función para el panel de control (dashboard)
+# --- PANEL DE CONTROL (DASHBOARD) ---
 def show_dashboard():
-    st.title("Panel de Control")
-    st.write(f"Bienvenido, {st.session_state.user['email']}")
+    user_email = st.session_state.user['email']
     user_id = st.session_state.user['id']
 
-    # Cargar preferencias existentes
-    try:
-        response = supabase.table('preferencias').select('*').eq('user_id', user_id).single().execute()
-        preferencias = response.data
-    except Exception as e:
-        preferencias = {} # No hay preferencias o hay un error
+    # --- Barra de Navegación Superior ---
+    with st.container():
+        col1, col2 = st.columns([0.85, 0.15])
+        with col1:
+            st.title("Alertas de Boletines Oficiales")
+            st.caption(f"Bienvenido, {user_email}")
+        with col2:
+            if st.button("Cerrar Sesión"):
+                del st.session_state.user
+                st.rerun()
+    st.markdown("<hr style='margin-top: 0;'/>", unsafe_allow_html=True)
 
-    st.header("Configuración de Preferencias")
-
-    # Selector de municipios
-    municipios_guardados = preferencias.get('municipios', []) or []
-    municipios_seleccionados = st.multiselect(
-        "Elige los municipios para recibir alertas:",
-        options=MUNICIPIOS_BADAJOZ,
-        default=municipios_guardados
-    )
-
-    # Selector de boletines con checkboxes
-    st.write("Elige los boletines a los que suscribirte:")
-    boletines_guardados = preferencias.get('boletines', []) or []
-    
-    b1 = st.checkbox("DOE", value=("DOE" in boletines_guardados))
-    b2 = st.checkbox("BOP", value=("BOP" in boletines_guardados))
-    b3 = st.checkbox("BOE", value=("BOE" in boletines_guardados))
-
-    # Selector de hora
-    hora_guardada_str = preferencias.get('hora_envio', '08:00:00')
-    hora_guardada = datetime.datetime.strptime(hora_guardada_str, '%H:%M:%S').time()
-    hora_seleccionada = st.time_input("Elige la hora para recibir el correo:", value=hora_guardada)
-
-    # Campo para el email de envío
-    email_guardado = preferencias.get('email', st.session_state.user['email'])
-    email_seleccionado = st.text_input("Email para recibir las alertas:", value=email_guardado)
-
-    if st.button("Guardar Preferencias"):
-        # Recopilar boletines seleccionados de los checkboxes
-        boletines_seleccionados = []
-        if b1: boletines_seleccionados.append("DOE")
-        if b2: boletines_seleccionados.append("BOP")
-        if b3: boletines_seleccionados.append("BOE")
-
+    # --- Contenido Principal Centrado ---
+    _, main_col, _ = st.columns([1, 3, 1])
+    with main_col:
+        # --- Cargar preferencias ---
         try:
-            # Usamos upsert para insertar o actualizar las preferencias
-            datos_para_guardar = {
-                "user_id": user_id,
-                "municipios": municipios_seleccionados,
-                "boletines": boletines_seleccionados,
-                "hora_envio": str(hora_seleccionada),
-                "email": email_seleccionado
-            }
-            supabase.table('preferencias').upsert(datos_para_guardar, on_conflict='user_id').execute()
-            st.success("¡Preferencias guardadas con éxito!")
-        except Exception as e:
-            st.error(f"Error al guardar las preferencias: {e}")
+            response = supabase.table('preferencias').select('*').eq('user_id', user_id).single().execute()
+            preferencias = response.data
+        except Exception:
+            preferencias = {}
 
-    if st.button("Cerrar Sesión", key="logout_dashboard"):
-        del st.session_state.user
-        st.rerun()
+        # --- Formulario de configuración ---
+        with st.container():
+            st.header("⚙️ Mis Preferencias")
+            st.markdown("Ajusta tus suscripciones y notificaciones.")
 
-# Lógica principal de la aplicación
+            with st.expander("Suscripciones a Boletines", expanded=True):
+                st.subheader("📍 Municipios")
+                municipios_guardados = preferencias.get('municipios', []) or []
+                municipios_seleccionados = st.multiselect(
+                    "Selecciona los municipios para monitorizar:",
+                    options=MUNICIPIOS_BADAJOZ,
+                    default=municipios_guardados
+                )
+                st.subheader("📰 Boletines")
+                boletines_guardados = preferencias.get('boletines', []) or []
+                b1 = st.checkbox("Diario Oficial de Extremadura (DOE)", value=("DOE" in boletines_guardados))
+                b2 = st.checkbox("Boletín Oficial de la Provincia (BOP)", value=("BOP" in boletines_guardados))
+                b3 = st.checkbox("Boletín Oficial del Estado (BOE)", value=("BOE" in boletines_guardados))
+
+            with st.expander("Configuración de Notificaciones", expanded=True):
+                st.subheader("📧 Opciones de Envío")
+                hora_guardada_str = preferencias.get('hora_envio', '08:00:00')
+                hora_guardada = datetime.datetime.strptime(hora_guardada_str, '%H:%M:%S').time()
+                hora_seleccionada = st.time_input("Hora de envío del correo:", value=hora_guardada)
+
+                email_guardado = preferencias.get('email', user_email)
+                email_seleccionado = st.text_input("Email para recibir las alertas:", value=email_guardado)
+
+            st.markdown("<br>", unsafe_allow_html=True)
+
+            if st.button("Guardar Cambios", use_container_width=True):
+                boletines_seleccionados = []
+                if b1: boletines_seleccionados.append("DOE")
+                if b2: boletines_seleccionados.append("BOP")
+                if b3: boletines_seleccionados.append("BOE")
+
+                try:
+                    datos_para_guardar = {
+                        "user_id": user_id,
+                        "municipios": municipios_seleccionados,
+                        "boletines": boletines_seleccionados,
+                        "hora_envio": str(hora_seleccionada),
+                        "email": email_seleccionado
+                    }
+                    supabase.table('preferencias').upsert(datos_para_guardar, on_conflict='user_id').execute()
+                    st.success("¡Tus preferencias se han guardado con éxito!")
+                except Exception as e:
+                    st.error(f"No se pudieron guardar los cambios: {e}")
+
+# --- LÓGICA PRINCIPAL ---
 def main():
     if 'user' not in st.session_state:
         show_auth_page()
