@@ -15,8 +15,8 @@ def show_auth_page():
         st.title("Alertas de Boletines Oficiales")
         
         with st.container():
-            st.header("Bienvenido de nuevo")
-            st.markdown("Por favor, inicia sesión para continuar.")
+          #  st.header("Bienvenido de nuevo")
+          #  st.markdown("Por favor, inicia sesión para continuar.")
 
             email = st.text_input("Email", placeholder="tu@email.com")
             password = st.text_input("Contraseña", type="password", placeholder="********")
