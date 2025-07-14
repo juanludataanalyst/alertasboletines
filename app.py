@@ -82,6 +82,34 @@ def show_dashboard():
         # --- Formulario de configuración ---
         with st.container():
             st.header("⚙️ Mis Preferencias")
+
+            # --- Lógica y estado de la suscripción ---
+            suscripcion_hasta_str = preferencias.get('suscripcion_activa_hasta')
+            suscripcion_hasta = None
+            if suscripcion_hasta_str:
+                try:
+                    suscripcion_hasta = datetime.datetime.strptime(suscripcion_hasta_str, '%Y-%m-%d').date()
+                except ValueError:
+                    st.error("Error en la fecha de suscripción.")
+            
+            col1, col2 = st.columns([0.7, 0.3])
+            with col1:
+                if suscripcion_hasta and suscripcion_hasta >= datetime.date.today():
+                    st.success(f"Tu suscripción está activa hasta el {suscripcion_hasta.strftime('%d/%m/%Y')}.")
+                else:
+                    st.warning("Tu suscripción ha caducado o no está activa.")
+            
+            with col2:
+                if st.button("Renovar Suscripción (1 Año)", use_container_width=True):
+                    nueva_fecha_exp = datetime.date.today() + datetime.timedelta(days=365)
+                    try:
+                        supabase.table('preferencias').update({'suscripcion_activa_hasta': str(nueva_fecha_exp)}).eq('user_id', user_id).execute()
+                        st.success("¡Suscripción renovada con éxito!")
+                        time.sleep(1)
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"Error al renovar: {e}")
+
             st.markdown("Ajusta tus suscripciones y notificaciones.")
 
             with st.expander("Suscripciones a Boletines", expanded=True):
@@ -115,16 +143,22 @@ def show_dashboard():
                 if b2: boletines_seleccionados.append("BOP")
                 if b3: boletines_seleccionados.append("BOE")
 
+                # Asignar fecha de prueba si no hay suscripción
+                fecha_suscripcion_final = str(suscripcion_hasta) if suscripcion_hasta else str(datetime.date.today() + datetime.timedelta(days=30))
+
                 try:
                     datos_para_guardar = {
                         "user_id": user_id,
                         "municipios": municipios_seleccionados,
                         "boletines": boletines_seleccionados,
                         "hora_envio": str(hora_seleccionada),
-                        "email": email_seleccionado
+                        "email": email_seleccionado,
+                        "suscripcion_activa_hasta": fecha_suscripcion_final
                     }
                     supabase.table('preferencias').upsert(datos_para_guardar, on_conflict='user_id').execute()
                     st.success("¡Tus preferencias se han guardado con éxito!")
+                    time.sleep(1)
+                    st.rerun()
                 except Exception as e:
                     st.error(f"No se pudieron guardar los cambios: {e}")
 
