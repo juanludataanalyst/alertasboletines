@@ -2,7 +2,8 @@ import streamlit as st
 from auth import show_auth_page
 from supabase_client import supabase
 import datetime
-import time # Importar el módulo time
+import time
+from main import ejecutar_busqueda_para_usuario # Importar la función
 
 # --- CONFIGURACIÓN DE LA PÁGINA ---
 st.set_page_config(page_title="Alertas de Boletines", page_icon="🔔", layout="wide")
@@ -79,26 +80,41 @@ def show_dashboard():
         except Exception:
             preferencias = {}
 
+        # --- Lógica y estado de la suscripción ---
+        suscripcion_hasta_str = preferencias.get('suscripcion_activa_hasta')
+        suscripcion_activa = False
+        if suscripcion_hasta_str:
+            try:
+                suscripcion_hasta = datetime.datetime.strptime(suscripcion_hasta_str, '%Y-%m-%d').date()
+                if suscripcion_hasta >= datetime.date.today():
+                    suscripcion_activa = True
+            except (ValueError, TypeError):
+                st.error("Error en la fecha de suscripción.")
+
+        st.header("🚀 Búsqueda Manual")
+        if st.button("Buscar Alertas Ahora", use_container_width=True, disabled=not suscripcion_activa):
+            with st.spinner("Buscando en los boletines... Esto puede tardar un minuto."):
+                municipios = preferencias.get('municipios', [])
+                boletines = preferencias.get('boletines', [])
+                mensaje, exito = ejecutar_busqueda_para_usuario(user_email, municipios, boletines)
+                if exito:
+                    st.success(mensaje)
+                else:
+                    st.error(mensaje)
+        if not suscripcion_activa:
+            st.warning("Necesitas una suscripción activa para realizar búsquedas.")
+
+        st.markdown("<hr style='margin: 2rem 0;'/>", unsafe_allow_html=True)
+
         # --- Formulario de configuración ---
         with st.container():
             st.header("⚙️ Mis Preferencias")
-
-            # --- Lógica y estado de la suscripción ---
-            suscripcion_hasta_str = preferencias.get('suscripcion_activa_hasta')
-            suscripcion_hasta = None
-            if suscripcion_hasta_str:
-                try:
-                    suscripcion_hasta = datetime.datetime.strptime(suscripcion_hasta_str, '%Y-%m-%d').date()
-                except ValueError:
-                    st.error("Error en la fecha de suscripción.")
-            
             col1, col2 = st.columns([0.7, 0.3])
             with col1:
-                if suscripcion_hasta and suscripcion_hasta >= datetime.date.today():
-                    st.success(f"Tu suscripción está activa hasta el {suscripcion_hasta.strftime('%d/%m/%Y')}.")
+                if suscripcion_activa:
+                    st.success(f"Suscripción activa hasta el {suscripcion_hasta.strftime('%d/%m/%Y')}.")
                 else:
-                    st.warning("Tu suscripción ha caducado o no está activa.")
-            
+                    st.warning("Suscripción caducada o no activa.")
             with col2:
                 if st.button("Renovar Suscripción (1 Año)", use_container_width=True):
                     nueva_fecha_exp = datetime.date.today() + datetime.timedelta(days=365)
@@ -143,8 +159,7 @@ def show_dashboard():
                 if b2: boletines_seleccionados.append("BOP")
                 if b3: boletines_seleccionados.append("BOE")
 
-                # Asignar fecha de prueba si no hay suscripción
-                fecha_suscripcion_final = str(suscripcion_hasta) if suscripcion_hasta else str(datetime.date.today() + datetime.timedelta(days=30))
+                fecha_suscripcion_final = str(suscripcion_hasta) if suscripcion_activa else str(datetime.date.today() + datetime.timedelta(days=30))
 
                 try:
                     datos_para_guardar = {

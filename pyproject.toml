@@ -8,5 +8,6 @@ dependencies = [
     "streamlit",
     "supabase",
     "python-dotenv",
+    "bs4"
 
 ]
