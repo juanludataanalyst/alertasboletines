@@ -91,21 +91,6 @@ def show_dashboard():
             except (ValueError, TypeError):
                 st.error("Error en la fecha de suscripción.")
 
-        st.header("🚀 Búsqueda Manual")
-        if st.button("Buscar Alertas Ahora", use_container_width=True, disabled=not suscripcion_activa):
-            with st.spinner("Buscando en los boletines... Esto puede tardar un minuto."):
-                municipios = preferencias.get('municipios', [])
-                boletines = preferencias.get('boletines', [])
-                mensaje, exito = ejecutar_busqueda_para_usuario(user_email, municipios, boletines)
-                if exito:
-                    st.success(mensaje)
-                else:
-                    st.error(mensaje)
-        if not suscripcion_activa:
-            st.warning("Necesitas una suscripción activa para realizar búsquedas.")
-
-        st.markdown("<hr style='margin: 2rem 0;'/>", unsafe_allow_html=True)
-
         # --- Formulario de configuración ---
         with st.container():
             st.header("⚙️ Mis Preferencias")
@@ -176,6 +161,21 @@ def show_dashboard():
                     st.rerun()
                 except Exception as e:
                     st.error(f"No se pudieron guardar los cambios: {e}")
+
+        st.markdown("<hr style='margin: 2rem 0;'/>", unsafe_allow_html=True)
+
+        st.header("🚀 Probar Alerta")
+        if st.button("Enviar Email Ahora", use_container_width=True, disabled=not suscripcion_activa):
+            with st.spinner("Buscando en los boletines... Esto puede tardar un minuto."):
+                municipios = preferencias.get('municipios', [])
+                boletines = preferencias.get('boletines', [])
+                mensaje, exito = ejecutar_busqueda_para_usuario(user_email, municipios, boletines)
+                if exito:
+                    st.success(mensaje)
+                else:
+                    st.error(mensaje)
+        if not suscripcion_activa:
+            st.warning("Necesitas una suscripción activa para realizar búsquedas.")
 
 # --- LÓGICA PRINCIPAL ---
 def main():
