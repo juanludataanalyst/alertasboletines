@@ -79,54 +79,79 @@ def show_dashboard():
         except Exception:
             preferencias = {}
 
-        # --- Formulario de configuración ---
-        with st.container():
-            st.header("⚙️ Mis Preferencias")
-            st.markdown("Ajusta tus suscripciones y notificaciones.")
+        st.header("⚙️ Mis Preferencias")
+        st.markdown("Consulta o actualiza tus suscripciones y notificaciones.")
 
-            with st.expander("Suscripciones a Boletines", expanded=True):
-                st.subheader("📍 Municipios")
-                municipios_guardados = preferencias.get('municipios', []) or []
-                municipios_seleccionados = st.multiselect(
-                    "Selecciona los municipios para monitorizar:",
-                    options=MUNICIPIOS_BADAJOZ,
-                    default=municipios_guardados
-                )
-                st.subheader("📰 Boletines")
-                boletines_guardados = preferencias.get('boletines', []) or []
-                b1 = st.checkbox("Diario Oficial de Extremadura (DOE)", value=("DOE" in boletines_guardados))
-                b2 = st.checkbox("Boletín Oficial de la Provincia (BOP)", value=("BOP" in boletines_guardados))
-                b3 = st.checkbox("Boletín Oficial del Estado (BOE)", value=("BOE" in boletines_guardados))
+        tab1, tab2 = st.tabs(["Mi Configuración", "📝 Editar Preferencias"])
 
-            with st.expander("Configuración de Notificaciones", expanded=True):
-                st.subheader("📧 Opciones de Envío")
-                hora_guardada_str = preferencias.get('hora_envio', '08:00:00')
-                hora_guardada = datetime.datetime.strptime(hora_guardada_str, '%H:%M:%S').time()
-                hora_seleccionada = st.time_input("Hora de envío del correo:", value=hora_guardada)
+        # --- Pestaña 1: Mostrar Configuración Actual ---
+        with tab1:
+            st.subheader("Suscripciones a Boletines")
+            
+            st.markdown("##### 📍 Municipios")
+            municipios_guardados = preferencias.get('municipios', []) or ["No has seleccionado municipios."]
+            st.text(", ".join(municipios_guardados))
 
-                email_guardado = preferencias.get('email', user_email)
-                email_seleccionado = st.text_input("Email para recibir las alertas:", value=email_guardado)
+            st.markdown("##### 📰 Boletines")
+            boletines_guardados = preferencias.get('boletines', []) or ["No has seleccionado boletines."]
+            st.text(", ".join(boletines_guardados))
 
-            st.markdown("<br>", unsafe_allow_html=True)
+            st.subheader("Configuración de Notificaciones")
+            st.markdown("##### 📧 Opciones de Envío")
+            hora_guardada_str = preferencias.get('hora_envio', '08:00:00')
+            email_guardado = preferencias.get('email', user_email)
+            st.text(f"Recibirás las alertas en {email_guardado} a las {hora_guardada_str}.")
 
-            if st.button("Guardar Cambios", use_container_width=True):
-                boletines_seleccionados = []
-                if b1: boletines_seleccionados.append("DOE")
-                if b2: boletines_seleccionados.append("BOP")
-                if b3: boletines_seleccionados.append("BOE")
 
-                try:
-                    datos_para_guardar = {
-                        "user_id": user_id,
-                        "municipios": municipios_seleccionados,
-                        "boletines": boletines_seleccionados,
-                        "hora_envio": str(hora_seleccionada),
-                        "email": email_seleccionado
-                    }
-                    supabase.table('preferencias').upsert(datos_para_guardar, on_conflict='user_id').execute()
-                    st.success("¡Tus preferencias se han guardado con éxito!")
-                except Exception as e:
-                    st.error(f"No se pudieron guardar los cambios: {e}")
+        # --- Pestaña 2: Formulario de Edición ---
+        with tab2:
+            with st.container():
+                with st.expander("Suscripciones a Boletines", expanded=True):
+                    st.subheader("📍 Municipios")
+                    municipios_guardados = preferencias.get('municipios', []) or []
+                    municipios_seleccionados = st.multiselect(
+                        "Selecciona los municipios para monitorizar:",
+                        options=MUNICIPIOS_BADAJOZ,
+                        default=municipios_guardados,
+                        key="ms_municipios"
+                    )
+                    st.subheader("📰 Boletines")
+                    boletines_guardados = preferencias.get('boletines', []) or []
+                    b1 = st.checkbox("Diario Oficial de Extremadura (DOE)", value=("DOE" in boletines_guardados), key="cb_doe")
+                    b2 = st.checkbox("Boletín Oficial de la Provincia (BOP)", value=("BOP" in boletines_guardados), key="cb_bop")
+                    b3 = st.checkbox("Boletín Oficial del Estado (BOE)", value=("BOE" in boletines_guardados), key="cb_boe")
+
+                with st.expander("Configuración de Notificaciones", expanded=True):
+                    st.subheader("📧 Opciones de Envío")
+                    hora_guardada_str = preferencias.get('hora_envio', '08:00:00')
+                    hora_guardada = datetime.datetime.strptime(hora_guardada_str, '%H:%M:%S').time()
+                    hora_seleccionada = st.time_input("Hora de envío del correo:", value=hora_guardada, key="ti_hora")
+
+                    email_guardado = preferencias.get('email', user_email)
+                    email_seleccionado = st.text_input("Email para recibir las alertas:", value=email_guardado, key="ti_email")
+
+                st.markdown("<br>", unsafe_allow_html=True)
+
+                if st.button("Guardar Cambios", use_container_width=True, key="btn_guardar"):
+                    boletines_seleccionados = []
+                    if b1: boletines_seleccionados.append("DOE")
+                    if b2: boletines_seleccionados.append("BOP")
+                    if b3: boletines_seleccionados.append("BOE")
+
+                    try:
+                        datos_para_guardar = {
+                            "user_id": user_id,
+                            "municipios": municipios_seleccionados,
+                            "boletines": boletines_seleccionados,
+                            "hora_envio": str(hora_seleccionada),
+                            "email": email_seleccionado
+                        }
+                        supabase.table('preferencias').upsert(datos_para_guardar, on_conflict='user_id').execute()
+                        st.success("¡Tus preferencias se han guardado con éxito!")
+                        time.sleep(2) # Pausa para que el usuario vea el mensaje
+                        st.rerun() # Recargar para mostrar los cambios en la primera pestaña
+                    except Exception as e:
+                        st.error(f"No se pudieron guardar los cambios: {e}")
 
 # --- LÓGICA PRINCIPAL ---
 def main():
