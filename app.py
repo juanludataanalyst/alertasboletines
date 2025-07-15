@@ -101,15 +101,7 @@ def show_dashboard():
                 else:
                     st.warning("Suscripción caducada o no activa.")
             with col2:
-                if st.button("Renovar Suscripción (1 Año)", use_container_width=True):
-                    nueva_fecha_exp = datetime.date.today() + datetime.timedelta(days=365)
-                    try:
-                        supabase.table('preferencias').update({'suscripcion_activa_hasta': str(nueva_fecha_exp)}).eq('user_id', user_id).execute()
-                        st.success("¡Suscripción renovada con éxito!")
-                        time.sleep(1)
-                        st.rerun()
-                    except Exception as e:
-                        st.error(f"Error al renovar: {e}")
+                pass  ## Aqui ira el boton de renovar suscripcion
 
             st.markdown("Ajusta tus suscripciones y notificaciones.")
 
