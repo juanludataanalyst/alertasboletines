@@ -131,7 +131,7 @@ def show_dashboard():
                 st.subheader("📧 Opciones de Envío")
                 hora_guardada_str = preferencias.get('hora_envio', '08:00:00')
                 hora_guardada = datetime.datetime.strptime(hora_guardada_str, '%H:%M:%S').time()
-                hora_seleccionada = st.time_input("Hora de envío del correo:", value=hora_guardada)
+                hora_seleccionada = st.time_input("Hora de envío del correo:", value=hora_guardada, step=3600)
 
                 email_guardado = preferencias.get('email', user_email)
                 email_seleccionado = st.text_input("Email para recibir las alertas:", value=email_guardado)
