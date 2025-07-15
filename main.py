@@ -6,12 +6,20 @@ import unicodedata
 from bs4 import BeautifulSoup
 import logging
 
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+
+url: str = os.environ.get("SUPABASE_URL")
+
 # Configuración de logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Configuración de correo
 SENDER_EMAIL = "juanludataanalyst@gmail.com"
-APP_PASSWORD = "gvkj axrm mswq ohlq"
+APP_PASSWORD =  os.environ.get("APP_PASSWORD") 
+
 
 def normalize_text(text):
     if not text: return ""
