@@ -107,6 +107,25 @@ def extract_boe_announcement(html, municipality, fecha):
         announcements = [("", "No se encontró texto de anuncio específico.", None)]
     return announcements
 
+def extract_bop_mentions(html, mentions, fecha):
+    soup = BeautifulSoup(html, 'html.parser')
+    found_mentions = []
+    for article in soup.find_all('article'):
+        article_text = article.get_text()
+        normalized_article_text = normalize_text(article_text)
+        for mention in mentions:
+            if normalize_text(mention) in normalized_article_text:
+                dt = article.find('dt')
+                dd = article.find('dd')
+                if dt and dd:
+                    code = dt.text.strip('[] ').strip()
+                    link = dd.find('a')
+                    title = link.text.strip() if link else ""
+                    pdf_url = f"https://www.dip-badajoz.es/bop/ventana_boletin_completo.php?FechaSolicitada={fecha}#Anuncio_{code}" if link else None
+                    logging.info(f"Encontrada mención '{mention}' en BOP Badajoz")
+                    found_mentions.append((mention, title, pdf_url))
+    return found_mentions
+
 def extract_doe_mentions(html, mentions):
     soup = BeautifulSoup(html, 'html.parser')
     found_mentions = []
@@ -128,6 +147,26 @@ def extract_doe_mentions(html, mentions):
                 found_mentions.append((mention, paragraph_text.strip(), pdf_url))
     return found_mentions
 
+def extract_boe_mentions(html, mentions):
+    soup = BeautifulSoup(html, 'html.parser')
+    found_mentions = []
+    for li in soup.find_all('li', class_='dispo'):
+        p_tag = li.find('p')
+        if not p_tag:
+            continue
+        text = p_tag.get_text(strip=True)
+        normalized_text = normalize_text(text)
+        for mention in mentions:
+            if normalize_text(mention) in normalized_text:
+                pdf_link = li.find('li', class_='puntoPDF')
+                pdf_url = None
+                if pdf_link and pdf_link.find('a'):
+                    href = pdf_link.find('a')['href']
+                    pdf_url = f"https://www.boe.es{href}" if href.startswith('/boe') else href
+                logging.info(f"Encontrada mención '{mention}' en BOE")
+                found_mentions.append((mention, text.strip(), pdf_url))
+    return found_mentions
+
 # --- FUNCIONES DE COMPROBACIÓN (idénticas al original) ---
 def check_doe(municipalities, mentions):
     fecha = datetime.now().strftime("%Y%m%d")
@@ -138,6 +177,8 @@ def check_doe(municipalities, mentions):
         response.raise_for_status()
         html = response.text
         html_normalized = normalize_text(html)
+        
+        # 1. Encontrar anuncios de municipios
         found_announcements = []
         for muni in municipalities:
             if normalize_text(f"Ayuntamiento de {muni}") in html_normalized:
@@ -145,9 +186,14 @@ def check_doe(municipalities, mentions):
                 for prefix, text, pdf_url in announcements:
                     found_announcements.append((f"Ayuntamiento de {muni}", prefix, text, pdf_url))
         
+        # 2. Encontrar todas las menciones
         found_mentions = extract_doe_mentions(html, mentions)
 
-        return sorted(found_announcements, key=lambda x: x[0]), url, found_mentions
+        # 3. Filtrar menciones para evitar duplicados
+        announcement_texts = {text for _, _, text, _ in found_announcements}
+        unique_mentions = [m for m in found_mentions if m[1] not in announcement_texts]
+
+        return sorted(found_announcements, key=lambda x: x[0]), url, unique_mentions
     except requests.RequestException as e:
         logging.error(f"Error al acceder al DOE: {e}")
         return [], url, []
@@ -161,13 +207,23 @@ def check_bop_badajoz(municipalities, mentions):
         response.raise_for_status()
         html = response.text
         html_normalized = normalize_text(html)
-        found = []
+        
+        # 1. Encontrar anuncios de municipios
+        found_announcements = []
         for muni in municipalities:
             if normalize_text(f"Ayuntamiento de {muni}") in html_normalized:
                 announcements = extract_bop_announcement(html, muni, fecha)
                 for prefix, text, pdf_url in announcements:
-                    found.append((f"Ayuntamiento de {muni}", prefix, text, pdf_url))
-        return sorted(found, key=lambda x: x[0]), url, []
+                    found_announcements.append((f"Ayuntamiento de {muni}", prefix, text, pdf_url))
+        
+        # 2. Encontrar todas las menciones
+        found_mentions = extract_bop_mentions(html, mentions, fecha)
+
+        # 3. Filtrar menciones para evitar duplicados
+        announcement_texts = {text for _, _, text, _ in found_announcements}
+        unique_mentions = [m for m in found_mentions if m[1] not in announcement_texts]
+
+        return sorted(found_announcements, key=lambda x: x[0]), url, unique_mentions
     except requests.RequestException as e:
         logging.error(f"Error al acceder al BOP Badajoz: {e}")
         return [], url, []
@@ -181,13 +237,23 @@ def check_boe(municipalities, mentions):
         response.raise_for_status()
         html = response.text
         html_normalized = normalize_text(html)
-        found = []
+        
+        # 1. Encontrar anuncios de municipios
+        found_announcements = []
         for muni in municipalities:
             if normalize_text(f"Ayuntamiento de {muni}") in html_normalized:
                 announcements = extract_boe_announcement(html, muni, fecha)
                 for prefix, text, pdf_url in announcements:
-                    found.append((f"Ayuntamiento de {muni}", prefix, text, pdf_url))
-        return sorted(found, key=lambda x: x[0]), url, [] # Return empty mentions
+                    found_announcements.append((f"Ayuntamiento de {muni}", prefix, text, pdf_url))
+        
+        # 2. Encontrar todas las menciones
+        found_mentions = extract_boe_mentions(html, mentions)
+
+        # 3. Filtrar menciones para evitar duplicados
+        announcement_texts = {text for _, _, text, _ in found_announcements}
+        unique_mentions = [m for m in found_mentions if m[1] not in announcement_texts]
+
+        return sorted(found_announcements, key=lambda x: x[0]), url, unique_mentions
     except requests.RequestException as e:
         logging.error(f"Error al acceder al BOE: {e}")
         return [], url, []
@@ -277,7 +343,7 @@ def format_email(results):
 
 def send_email(body, recipient_email):
     today_str = datetime.now().strftime("%d/%m/%Y")
-    subject = f"Publicaciones del Día V2 - {today_str}"
+    subject = f"Publicaciones del Día V2 dasddsad - {today_str}"
     msg = MIMEText(body, "html", "utf-8")
     msg["Subject"] = subject
     msg["From"] = SENDER_EMAIL
