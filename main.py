@@ -107,8 +107,20 @@ def extract_boe_announcement(html, municipality, fecha):
         announcements = [("", "No se encontró texto de anuncio específico.", None)]
     return announcements
 
+def extract_doe_mentions(html, mentions):
+    soup = BeautifulSoup(html, 'html.parser')
+    found_mentions = []
+    for mention in mentions:
+        normalized_mention = normalize_text(mention)
+        for p in soup.find_all('p'):
+            paragraph_text = p.get_text()
+            if normalized_mention in normalize_text(paragraph_text):
+                logging.info(f"Encontrada mención '{mention}' en DOE")
+                found_mentions.append((mention, paragraph_text.strip()))
+    return found_mentions
+
 # --- FUNCIONES DE COMPROBACIÓN (idénticas al original) ---
-def check_doe(municipalities):
+def check_doe(municipalities, mentions):
     fecha = datetime.now().strftime("%Y%m%d")
     url = f"https://doe.juntaex.es/ultimosdoe/mostrardoe.php?fecha={fecha}&t=o"
     logging.info(f"Comprobando DOE: {url}")
@@ -117,18 +129,21 @@ def check_doe(municipalities):
         response.raise_for_status()
         html = response.text
         html_normalized = normalize_text(html)
-        found = []
+        found_announcements = []
         for muni in municipalities:
             if normalize_text(f"Ayuntamiento de {muni}") in html_normalized:
                 announcements = extract_doe_announcement(html, muni)
                 for prefix, text, pdf_url in announcements:
-                    found.append((f"Ayuntamiento de {muni}", prefix, text, pdf_url))
-        return sorted(found, key=lambda x: x[0]), url
+                    found_announcements.append((f"Ayuntamiento de {muni}", prefix, text, pdf_url))
+        
+        found_mentions = extract_doe_mentions(html, mentions)
+
+        return sorted(found_announcements, key=lambda x: x[0]), url, found_mentions
     except requests.RequestException as e:
         logging.error(f"Error al acceder al DOE: {e}")
-        return [], url
+        return [], url, []
 
-def check_bop_badajoz(municipalities):
+def check_bop_badajoz(municipalities, mentions):
     fecha = datetime.now().strftime("%Y%m%d") + "000000"
     url = f"https://www.dip-badajoz.es/bop/ventana_boletin_completo.php?FechaSolicitada={fecha}"
     logging.info(f"Comprobando BOP Badajoz: {url}")
@@ -143,12 +158,12 @@ def check_bop_badajoz(municipalities):
                 announcements = extract_bop_announcement(html, muni, fecha)
                 for prefix, text, pdf_url in announcements:
                     found.append((f"Ayuntamiento de {muni}", prefix, text, pdf_url))
-        return sorted(found, key=lambda x: x[0]), url
+        return sorted(found, key=lambda x: x[0]), url, []
     except requests.RequestException as e:
         logging.error(f"Error al acceder al BOP Badajoz: {e}")
-        return [], url
+        return [], url, []
 
-def check_boe(municipalities):
+def check_boe(municipalities, mentions):
     fecha = datetime.now().strftime("%Y/%m/%d")
     url = f"https://www.boe.es/boe/dias/{fecha}/"
     logging.info(f"Comprobando BOE: {url}")
@@ -163,10 +178,10 @@ def check_boe(municipalities):
                 announcements = extract_boe_announcement(html, muni, fecha)
                 for prefix, text, pdf_url in announcements:
                     found.append((f"Ayuntamiento de {muni}", prefix, text, pdf_url))
-        return sorted(found, key=lambda x: x[0]), url
+        return sorted(found, key=lambda x: x[0]), url, [] # Return empty mentions
     except requests.RequestException as e:
         logging.error(f"Error al acceder al BOE: {e}")
-        return [], url
+        return [], url, []
 
 # Formatea el cuerpo del email en HTML
 def format_email(results):
@@ -200,7 +215,7 @@ def format_email(results):
     
     for fuente, data in results.items():
         html_content.append(f'<h3>{sources[fuente]}</h3>')
-        announcements, url = data
+        announcements, url, mentions = data
         # This logic is from your original script.
         # It filters out placeholder announcements before displaying.
         valid_announcements = [a for a in announcements if a[1] != "No se encontró texto de anuncio específico."]
@@ -229,6 +244,15 @@ def format_email(results):
             html_content.append(f'<p><strong>Enlace consultado:</strong> <a href="{url}" class="url-link">{url}</a></p>')
             html_content.append('<br>')
         html_content.append('<hr>')
+
+        if mentions:
+            html_content.append('<h3>Menciones Encontradas</h3>')
+            html_content.append('<ul>')
+            for mention, paragraph in mentions:
+                html_content.append(f'<li><div class="municipality">Mención: {mention}</div>')
+                html_content.append(f'<div class="announcement">{paragraph}</div></li>')
+            html_content.append('</ul>')
+            html_content.append('<br>')
     
     html_content.append('<div class="footer">')
     html_content.append('<p>Este correo ha sido generado automáticamente por un servicio de monitoreo de boletines oficiales.</p>')
@@ -240,7 +264,7 @@ def format_email(results):
 
 def send_email(body, recipient_email):
     today_str = datetime.now().strftime("%d/%m/%Y")
-    subject = f"Publicaciones del Día dasdsad - {today_str}"
+    subject = f"Publicaciones del Día V2 - {today_str}"
     msg = MIMEText(body, "html", "utf-8")
     msg["Subject"] = subject
     msg["From"] = SENDER_EMAIL
@@ -257,19 +281,19 @@ def send_email(body, recipient_email):
         return False
 
 # --- FUNCIÓN PRINCIPAL REUTILIZABLE (lógica restaurada) ---
-def ejecutar_busqueda_para_usuario(email, municipios, boletines):
+def ejecutar_busqueda_para_usuario(email, municipios, boletines, menciones):
     logging.info(f"--- Ejecutando búsqueda bajo demanda para: {email} ---")
-    if not municipios or not boletines:
-        logging.warning("No hay municipios o boletines configurados.")
-        return "Configura tus municipios y boletines antes de ejecutar la búsqueda.", False
+    if not municipios and not menciones:
+        logging.warning("No hay municipios o menciones configurados.")
+        return "Configura tus municipios y/o menciones antes de ejecutar la búsqueda.", False
 
     results = {}
     if "DOE" in boletines:
-        results["DOE"] = check_doe(municipios)
+        results["DOE"] = check_doe(municipios, menciones)
     if "BOP" in boletines:
-        results["BOP Badajoz"] = check_bop_badajoz(municipios)
+        results["BOP Badajoz"] = check_bop_badajoz(municipios, menciones)
     if "BOE" in boletines:
-        results["BOE"] = check_boe(municipios)
+        results["BOE"] = check_boe(municipios, menciones)
     
     cuerpo_email = format_email(results)
     logging.info(f"Cuerpo del email para {email}:\n{cuerpo_email}")

@@ -119,9 +119,18 @@ def show_dashboard():
                 b2 = st.checkbox("Boletín Oficial de la Provincia (BOP)", value=("BOP" in boletines_guardados))
                 b3 = st.checkbox("Boletín Oficial del Estado (BOE)", value=("BOE" in boletines_guardados))
 
+            with st.expander("📝 Mis Menciones", expanded=True):
+                st.subheader("Palabras Clave")
+                menciones_guardadas = preferencias.get('menciones', []) or []
+                menciones_texto = st.text_area(
+                    "Añade palabras clave para buscar en los boletines (separadas por comas):",
+                    value=", ".join(menciones_guardadas),
+                    help="Ejemplo: subvención, licitación, ayudas, mi-empresa"
+                )
+
             with st.expander("Configuración de Notificaciones", expanded=True):
                 st.subheader("📧 Opciones de Envío")
-                hora_guardada_str = preferencias.get('hora_envio', '08:00:00')
+                hora_guardada_str = preferencias.get('hora_envio') or '08:00:00'
                 hora_guardada = datetime.datetime.strptime(hora_guardada_str, '%H:%M:%S').time()
                 hora_seleccionada = st.time_input("Hora de envío del correo:", value=hora_guardada, step=3600)
 
@@ -136,6 +145,9 @@ def show_dashboard():
                 if b2: boletines_seleccionados.append("BOP")
                 if b3: boletines_seleccionados.append("BOE")
 
+                # Procesa las menciones para guardarlas como una lista de strings
+                menciones_seleccionadas = [m.strip() for m in menciones_texto.split(',') if m.strip()]
+
                 fecha_suscripcion_final = str(suscripcion_hasta) if suscripcion_activa else str(datetime.date.today() + datetime.timedelta(days=30))
 
                 try:
@@ -143,6 +155,7 @@ def show_dashboard():
                         "user_id": user_id,
                         "municipios": municipios_seleccionados,
                         "boletines": boletines_seleccionados,
+                        "menciones": menciones_seleccionadas,
                         "hora_envio": str(hora_seleccionada),
                         "email": email_seleccionado,
                         "suscripcion_activa_hasta": fecha_suscripcion_final
@@ -161,7 +174,8 @@ def show_dashboard():
             with st.spinner("Buscando en los boletines... Esto puede tardar un minuto."):
                 municipios = preferencias.get('municipios', [])
                 boletines = preferencias.get('boletines', [])
-                mensaje, exito = ejecutar_busqueda_para_usuario(user_email, municipios, boletines)
+                menciones = preferencias.get('menciones', [])
+                mensaje, exito = ejecutar_busqueda_para_usuario(user_email, municipios, boletines, menciones)
                 if exito:
                     st.success(mensaje)
                 else:
