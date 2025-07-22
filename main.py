@@ -287,6 +287,12 @@ def format_email(results):
         "BOP Badajoz": "Municipios nombrados en BOP Badajoz",
         "BOE": "Municipios nombrados en BOE"
     }
+
+    mention_sources = {
+        "DOE": "DOE",
+        "BOP Badajoz": "BOP Badajoz",
+        "BOE": "BOE"
+    }
     
     for fuente, data in results.items():
         html_content.append(f'<h3>{sources[fuente]}</h3>')
@@ -321,7 +327,7 @@ def format_email(results):
         html_content.append('<hr>')
 
         if mentions:
-            html_content.append('<h3>Menciones Encontradas</h3>')
+            html_content.append(f'<h3>Menciones Encontradas en {mention_sources[fuente]}</h3>')
             html_content.append('<ul>')
             for mention, paragraph, pdf_url in mentions:
                 html_content.append(f'<li><div class="municipality">Mención: {mention}</div>')
@@ -343,7 +349,7 @@ def format_email(results):
 
 def send_email(body, recipient_email):
     today_str = datetime.now().strftime("%d/%m/%Y")
-    subject = f"Publicaciones del Día V2 dasddsad - {today_str}"
+    subject = f"Alertas de Boletines Oficiales 2 - {today_str}"
     msg = MIMEText(body, "html", "utf-8")
     msg["Subject"] = subject
     msg["From"] = SENDER_EMAIL
