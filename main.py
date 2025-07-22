@@ -116,7 +116,16 @@ def extract_doe_mentions(html, mentions):
             paragraph_text = p.get_text()
             if normalized_mention in normalize_text(paragraph_text):
                 logging.info(f"Encontrada mención '{mention}' en DOE")
-                found_mentions.append((mention, paragraph_text.strip()))
+                
+                # Buscar el enlace al PDF asociado al anuncio
+                pdf_url = None
+                div = p.find_parent('div', class_='justificado')
+                if div:
+                    pdf_link = div.find('a', class_='enlace_dis')
+                    if pdf_link and pdf_link.has_attr('href'):
+                        pdf_url = f"https://doe.juntaex.es{pdf_link['href']}"
+
+                found_mentions.append((mention, paragraph_text.strip(), pdf_url))
     return found_mentions
 
 # --- FUNCIONES DE COMPROBACIÓN (idénticas al original) ---
@@ -248,9 +257,13 @@ def format_email(results):
         if mentions:
             html_content.append('<h3>Menciones Encontradas</h3>')
             html_content.append('<ul>')
-            for mention, paragraph in mentions:
+            for mention, paragraph, pdf_url in mentions:
                 html_content.append(f'<li><div class="municipality">Mención: {mention}</div>')
-                html_content.append(f'<div class="announcement">{paragraph}</div></li>')
+                html_content.append('<div class="announcement">')
+                html_content.append(f'{paragraph}')
+                if pdf_url:
+                    html_content.append(f' <a href="{pdf_url}" class="pdf-link">Ver Publicación</a>')
+                html_content.append('</div></li>')
             html_content.append('</ul>')
             html_content.append('<br>')
     
