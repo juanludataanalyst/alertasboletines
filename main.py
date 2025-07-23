@@ -1,5 +1,5 @@
 import requests
-from datetime import datetime, timedelta
+from datetime import datetime
 import smtplib
 from email.mime.text import MIMEText
 import unicodedata
@@ -179,10 +179,9 @@ def extract_boe_mentions(html, mentions):
 
 # --- FUNCIONES DE COMPROBACIÓN ---
 def check_doe(municipalities, mentions):
-    # Usar el día anterior para pruebas
-    fecha = (datetime.now() - timedelta(days=1)).strftime("%Y%m%d")
+    fecha = datetime.now().strftime("%Y%m%d")
     url = f"https://doe.juntaex.es/ultimosdoe/mostrardoe.php?fecha={fecha}&t=o"
-    logging.info(f"Comprobando DOE (día anterior para pruebas): {url}")
+    logging.info(f"Comprobando DOE: {url}")
     try:
         response = requests.get(url)
         response.raise_for_status()
@@ -223,10 +222,9 @@ def check_doe(municipalities, mentions):
         return [], url, []
 
 def check_bop_badajoz(municipalities, mentions):
-    # Usar el día anterior para pruebas
-    fecha = (datetime.now() - timedelta(days=1)).strftime("%Y%m%d") + "000000"
+    fecha = datetime.now().strftime("%Y%m%d") + "000000"
     url = f"https://www.dip-badajoz.es/bop/ventana_boletin_completo.php?FechaSolicitada={fecha}"
-    logging.info(f"Comprobando BOP Badajoz (día anterior para pruebas): {url}")
+    logging.info(f"Comprobando BOP Badajoz: {url}")
     try:
         response = requests.get(url)
         response.raise_for_status()
@@ -267,10 +265,9 @@ def check_bop_badajoz(municipalities, mentions):
         return [], url, []
 
 def check_boe(municipalities, mentions):
-    # Usar el día anterior para pruebas
-    fecha = (datetime.now() - timedelta(days=1)).strftime("%Y/%m/%d")
+    fecha = datetime.now().strftime("%Y/%m/%d")
     url = f"https://www.boe.es/boe/dias/{fecha}/"
-    logging.info(f"Comprobando BOE (día anterior para pruebas): {url}")
+    logging.info(f"Comprobando BOE: {url}")
     try:
         response = requests.get(url)
         response.raise_for_status()
