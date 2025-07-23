@@ -1,5 +1,5 @@
 import requests
-from datetime import datetime
+from datetime import datetime, timedelta
 import smtplib
 from email.mime.text import MIMEText
 import unicodedata
@@ -18,15 +18,14 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 
 # Configuración de correo
 SENDER_EMAIL = "juanludataanalyst@gmail.com"
-APP_PASSWORD =  os.environ.get("APP_PASSWORD") 
-
+APP_PASSWORD = os.environ.get("APP_PASSWORD") 
 
 def normalize_text(text):
     if not text: return ""
     return ''.join(c for c in unicodedata.normalize('NFKD', text)
                    if not unicodedata.combining(c)).lower()
 
-# --- FUNCIONES DE EXTRACCIÓN (idénticas al original) ---
+# --- FUNCIONES DE EXTRACCIÓN ---
 def extract_doe_announcement(html, municipality):
     soup = BeautifulSoup(html, 'html.parser')
     normalized_muni = normalize_text(f"Ayuntamiento de {municipality}")
@@ -110,7 +109,14 @@ def extract_boe_announcement(html, municipality, fecha):
 def extract_bop_mentions(html, mentions, fecha):
     soup = BeautifulSoup(html, 'html.parser')
     found_mentions = []
-    for article in soup.find_all('article'):
+    
+    # Buscar solo dentro del contenedor sumario_dinamico
+    container = soup.find('div', id='sumario_dinamico')
+    if not container:
+        logging.warning("No se encontró el contenedor 'sumario_dinamico' en BOP Badajoz")
+        return found_mentions
+
+    for article in container.find_all('article'):
         article_text = article.get_text()
         normalized_article_text = normalize_text(article_text)
         for mention in mentions:
@@ -122,8 +128,12 @@ def extract_bop_mentions(html, mentions, fecha):
                     link = dd.find('a')
                     title = link.text.strip() if link else ""
                     pdf_url = f"https://www.dip-badajoz.es/bop/ventana_boletin_completo.php?FechaSolicitada={fecha}#Anuncio_{code}" if link else None
-                    logging.info(f"Encontrada mención '{mention}' en BOP Badajoz")
+                    logging.info(f"Encontrada mención '{mention}' en BOP Badajoz (sumario_dinamico)")
                     found_mentions.append((mention, title, pdf_url))
+    
+    if not found_mentions:
+        logging.info("No se encontraron menciones en el sumario_dinamico de BOP Badajoz")
+    
     return found_mentions
 
 def extract_doe_mentions(html, mentions):
@@ -167,11 +177,12 @@ def extract_boe_mentions(html, mentions):
                 found_mentions.append((mention, text.strip(), pdf_url))
     return found_mentions
 
-# --- FUNCIONES DE COMPROBACIÓN (idénticas al original) ---
+# --- FUNCIONES DE COMPROBACIÓN ---
 def check_doe(municipalities, mentions):
-    fecha = datetime.now().strftime("%Y%m%d")
+    # Usar el día anterior para pruebas
+    fecha = (datetime.now() - timedelta(days=1)).strftime("%Y%m%d")
     url = f"https://doe.juntaex.es/ultimosdoe/mostrardoe.php?fecha={fecha}&t=o"
-    logging.info(f"Comprobando DOE: {url}")
+    logging.info(f"Comprobando DOE (día anterior para pruebas): {url}")
     try:
         response = requests.get(url)
         response.raise_for_status()
@@ -190,8 +201,21 @@ def check_doe(municipalities, mentions):
         found_mentions = extract_doe_mentions(html, mentions)
 
         # 3. Filtrar menciones para evitar duplicados
-        announcement_texts = {text for _, _, text, _ in found_announcements}
-        unique_mentions = [m for m in found_mentions if m[1] not in announcement_texts]
+        announcement_texts = set()
+        for muni_name, prefix, text, pdf_url in found_announcements:
+            announcement_texts.add(normalize_text(muni_name))
+            announcement_texts.add(normalize_text(prefix + " " + text)) # Include prefix and text
+
+        unique_mentions = []
+        for mention, paragraph, pdf_url in found_mentions:
+            normalized_paragraph = normalize_text(paragraph)
+            is_duplicate = False
+            for a_text in announcement_texts:
+                if normalized_paragraph in a_text or a_text in normalized_paragraph: # Check for substring
+                    is_duplicate = True
+                    break
+            if not is_duplicate:
+                unique_mentions.append((mention, paragraph, pdf_url))
 
         return sorted(found_announcements, key=lambda x: x[0]), url, unique_mentions
     except requests.RequestException as e:
@@ -199,9 +223,10 @@ def check_doe(municipalities, mentions):
         return [], url, []
 
 def check_bop_badajoz(municipalities, mentions):
-    fecha = datetime.now().strftime("%Y%m%d") + "000000"
+    # Usar el día anterior para pruebas
+    fecha = (datetime.now() - timedelta(days=1)).strftime("%Y%m%d") + "000000"
     url = f"https://www.dip-badajoz.es/bop/ventana_boletin_completo.php?FechaSolicitada={fecha}"
-    logging.info(f"Comprobando BOP Badajoz: {url}")
+    logging.info(f"Comprobando BOP Badajoz (día anterior para pruebas): {url}")
     try:
         response = requests.get(url)
         response.raise_for_status()
@@ -220,8 +245,21 @@ def check_bop_badajoz(municipalities, mentions):
         found_mentions = extract_bop_mentions(html, mentions, fecha)
 
         # 3. Filtrar menciones para evitar duplicados
-        announcement_texts = {text for _, _, text, _ in found_announcements}
-        unique_mentions = [m for m in found_mentions if m[1] not in announcement_texts]
+        announcement_texts = set()
+        for muni_name, prefix, text, pdf_url in found_announcements:
+            announcement_texts.add(normalize_text(muni_name))
+            announcement_texts.add(normalize_text(prefix + " " + text)) # Include prefix and text
+
+        unique_mentions = []
+        for mention, paragraph, pdf_url in found_mentions:
+            normalized_paragraph = normalize_text(paragraph)
+            is_duplicate = False
+            for a_text in announcement_texts:
+                if normalized_paragraph in a_text or a_text in normalized_paragraph: # Check for substring
+                    is_duplicate = True
+                    break
+            if not is_duplicate:
+                unique_mentions.append((mention, paragraph, pdf_url))
 
         return sorted(found_announcements, key=lambda x: x[0]), url, unique_mentions
     except requests.RequestException as e:
@@ -229,9 +267,10 @@ def check_bop_badajoz(municipalities, mentions):
         return [], url, []
 
 def check_boe(municipalities, mentions):
-    fecha = datetime.now().strftime("%Y/%m/%d")
+    # Usar el día anterior para pruebas
+    fecha = (datetime.now() - timedelta(days=1)).strftime("%Y/%m/%d")
     url = f"https://www.boe.es/boe/dias/{fecha}/"
-    logging.info(f"Comprobando BOE: {url}")
+    logging.info(f"Comprobando BOE (día anterior para pruebas): {url}")
     try:
         response = requests.get(url)
         response.raise_for_status()
@@ -250,8 +289,21 @@ def check_boe(municipalities, mentions):
         found_mentions = extract_boe_mentions(html, mentions)
 
         # 3. Filtrar menciones para evitar duplicados
-        announcement_texts = {text for _, _, text, _ in found_announcements}
-        unique_mentions = [m for m in found_mentions if m[1] not in announcement_texts]
+        announcement_texts = set()
+        for muni_name, prefix, text, pdf_url in found_announcements:
+            announcement_texts.add(normalize_text(muni_name))
+            announcement_texts.add(normalize_text(prefix + " " + text)) # Include prefix and text
+
+        unique_mentions = []
+        for mention, paragraph, pdf_url in found_mentions:
+            normalized_paragraph = normalize_text(paragraph)
+            is_duplicate = False
+            for a_text in announcement_texts:
+                if normalized_paragraph in a_text or a_text in normalized_paragraph: # Check for substring
+                    is_duplicate = True
+                    break
+            if not is_duplicate:
+                unique_mentions.append((mention, paragraph, pdf_url))
 
         return sorted(found_announcements, key=lambda x: x[0]), url, unique_mentions
     except requests.RequestException as e:
@@ -349,7 +401,7 @@ def format_email(results):
 
 def send_email(body, recipient_email):
     today_str = datetime.now().strftime("%d/%m/%Y")
-    subject = f"Alertas de Boletines Oficiales 2 - {today_str}"
+    subject = f"Alertas de Boletines Oficiales 3 - {today_str}"
     msg = MIMEText(body, "html", "utf-8")
     msg["Subject"] = subject
     msg["From"] = SENDER_EMAIL
@@ -365,7 +417,7 @@ def send_email(body, recipient_email):
         logging.error(f"❌ Error enviando email a {recipient_email}: {e}")
         return False
 
-# --- FUNCIÓN PRINCIPAL REUTILIZABLE (lógica restaurada) ---
+# --- FUNCIÓN PRINCIPAL REUTILIZABLE ---
 def ejecutar_busqueda_para_usuario(email, municipios, boletines, menciones):
     logging.info(f"--- Ejecutando búsqueda bajo demanda para: {email} ---")
     if not municipios and not menciones:
