@@ -179,10 +179,12 @@ def show_dashboard():
         st.header("🚀 Probar Alerta")
         if st.button("Enviar Email Ahora", use_container_width=True, disabled=not suscripcion_activa):
             with st.spinner("Buscando en los boletines... Esto puede tardar un minuto."):
+                # Usar el email de las preferencias para la prueba
+                email_destino = preferencias.get('email', user_email) 
                 municipios = preferencias.get('municipios', [])
                 boletines = preferencias.get('boletines', [])
                 menciones = preferencias.get('menciones', [])
-                mensaje, exito = ejecutar_busqueda_para_usuario(user_email, municipios, boletines, menciones)
+                mensaje, exito = ejecutar_busqueda_para_usuario(email_destino, municipios, boletines, menciones)
                 if exito:
                     st.success(mensaje)
                 else:
