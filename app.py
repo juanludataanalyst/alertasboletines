@@ -120,12 +120,18 @@ def show_dashboard():
                 b3 = st.checkbox("Boletín Oficial del Estado (BOE)", value=("BOE" in boletines_guardados))
 
             with st.expander("📝 Mis Menciones", expanded=True):
-                st.subheader("Palabras Clave")
+                st.subheader("Palabras Clave Guardadas")
                 menciones_guardadas = preferencias.get('menciones', []) or []
-                menciones_texto = st.text_area(
-                    "Añade palabras clave para buscar en los boletines (separadas por comas):",
-                    value=", ".join(menciones_guardadas),
-                    help="Ejemplo: subvención, licitación, ayudas, mi-empresa"
+                menciones_seleccionadas_existentes = st.multiselect(
+                    "Tus palabras clave actuales. Desmárcalas para eliminarlas.",
+                    options=menciones_guardadas,
+                    default=menciones_guardadas
+                )
+
+                st.subheader("Añadir Nuevas Palabras Clave")
+                nuevas_menciones_texto = st.text_area(
+                    "Escribe nuevas palabras clave separadas por comas:",
+                    placeholder="Ej: fondos europeos, digitalización, pymes"
                 )
 
             with st.expander("Configuración de Notificaciones", expanded=True):
@@ -146,7 +152,8 @@ def show_dashboard():
                 if b3: boletines_seleccionados.append("BOE")
 
                 # Procesa las menciones para guardarlas como una lista de strings
-                menciones_seleccionadas = [m.strip() for m in menciones_texto.split(',') if m.strip()]
+                nuevas_menciones = [m.strip() for m in nuevas_menciones_texto.split(',') if m.strip()]
+                menciones_finales = sorted(list(set(menciones_seleccionadas_existentes + nuevas_menciones)))
 
                 fecha_suscripcion_final = str(suscripcion_hasta) if suscripcion_activa else str(datetime.date.today() + datetime.timedelta(days=30))
 
@@ -155,7 +162,7 @@ def show_dashboard():
                         "user_id": user_id,
                         "municipios": municipios_seleccionados,
                         "boletines": boletines_seleccionados,
-                        "menciones": menciones_seleccionadas,
+                        "menciones": menciones_finales,
                         "hora_envio": str(hora_seleccionada),
                         "email": email_seleccionado,
                         "suscripcion_activa_hasta": fecha_suscripcion_final
