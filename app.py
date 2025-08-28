@@ -176,6 +176,9 @@ def show_dashboard():
 
         st.markdown("<hr style='margin: 2rem 0;'/>", unsafe_allow_html=True)
 
+        # SECCIÓN "PROBAR ALERTA" COMENTADA
+        # Para reactivar esta funcionalidad, descomenta las siguientes líneas:
+        """
         st.header("🚀 Probar Alerta")
         if st.button("Enviar Email Ahora", use_container_width=True, disabled=not suscripcion_activa):
             with st.spinner("Buscando en los boletines... Esto puede tardar un minuto."):
@@ -191,6 +194,7 @@ def show_dashboard():
                     st.error(mensaje)
         if not suscripcion_activa:
             st.warning("Necesitas una suscripción activa para realizar búsquedas.")
+        """
 
 # --- LÓGICA PRINCIPAL ---
 def main():
