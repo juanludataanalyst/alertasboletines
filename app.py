@@ -178,23 +178,21 @@ def show_dashboard():
 
         # SECCIÓN "PROBAR ALERTA" COMENTADA
         # Para reactivar esta funcionalidad, descomenta las siguientes líneas:
-        """
-        st.header("🚀 Probar Alerta")
-        if st.button("Enviar Email Ahora", use_container_width=True, disabled=not suscripcion_activa):
-            with st.spinner("Buscando en los boletines... Esto puede tardar un minuto."):
-                # Usar el email de las preferencias para la prueba
-                email_destino = preferencias.get('email', user_email) 
-                municipios = preferencias.get('municipios', [])
-                boletines = preferencias.get('boletines', [])
-                menciones = preferencias.get('menciones', [])
-                mensaje, exito = ejecutar_busqueda_para_usuario(email_destino, municipios, boletines, menciones)
-                if exito:
-                    st.success(mensaje)
-                else:
-                    st.error(mensaje)
-        if not suscripcion_activa:
-            st.warning("Necesitas una suscripción activa para realizar búsquedas.")
-        """
+        # st.header("🚀 Probar Alerta")
+        # if st.button("Enviar Email Ahora", use_container_width=True, disabled=not suscripcion_activa):
+        #     with st.spinner("Buscando en los boletines... Esto puede tardar un minuto."):
+        #         # Usar el email de las preferencias para la prueba
+        #         email_destino = preferencias.get('email', user_email) 
+        #         municipios = preferencias.get('municipios', [])
+        #         boletines = preferencias.get('boletines', [])
+        #         menciones = preferencias.get('menciones', [])
+        #         mensaje, exito = ejecutar_busqueda_para_usuario(email_destino, municipios, boletines, menciones)
+        #         if exito:
+        #             st.success(mensaje)
+        #         else:
+        #             st.error(mensaje)
+        # if not suscripcion_activa:
+        #     st.warning("Necesitas una suscripción activa para realizar búsquedas.")
 
 # --- LÓGICA PRINCIPAL ---
 def main():
