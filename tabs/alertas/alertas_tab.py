@@ -101,7 +101,7 @@ def show_alertas_tab():
         """)
         
         st.write("**Menciones Guardadas**")
-        menciones_guardadas = preferencias.get('menciones', []) or []
+        menciones_guardadas = preferencias.get('menciones_multiples', []) or []
         menciones_seleccionadas_existentes = st.multiselect(
             "Tus menciones actuales. Desmárcalas para eliminarlas.",
             options=menciones_guardadas,
@@ -151,7 +151,7 @@ def show_alertas_tab():
                 "user_id": user_id,
                 "municipios": municipios_seleccionados,
                 "boletines": boletines_seleccionados,
-                "menciones": menciones_finales,
+                "menciones_multiples": menciones_finales,
                 "hora_envio": str(hora_seleccionada),
                 "email": email_seleccionado,
                 "suscripcion_activa_hasta": fecha_suscripcion_final
