@@ -56,7 +56,7 @@ def main():
         if selected_tab == "🔔 Alertas por Email":
             show_alertas_tab()
         else:  # "🔍 Buscador Histórico"
-            show_buscador_tab()
+            show_buscador_tab(selected_tab)
 
 if __name__ == "__main__":
     main()

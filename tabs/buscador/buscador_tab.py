@@ -6,7 +6,7 @@ from database_simple import BoletinesDBSimple
 from scraper_simple import ScraperSimple
 from buscador_historico import BuscadorHistorico, format_email
 
-def show_buscador_tab():
+def show_buscador_tab(selected_tab):
     st.header("🔍 Buscador Histórico de Boletines")
     st.markdown("**Sistema de búsqueda histórica** - Busca municipios y menciones en datos almacenados")
     
@@ -30,42 +30,40 @@ def show_buscador_tab():
     # Obtener estadísticas
     stats = db.obtener_estadisticas()
     
-    # Mostrar estadísticas en la parte superior del contenido principal
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        if stats and stats.get('total', 0) > 0:
-            st.metric("📁 Total boletines", stats.get('total', 0))
-        else:
-            st.metric("📁 Total boletines", 0)
-    
-    with col2:
-        if stats.get('fecha_inicio') and stats.get('fecha_fin'):
-            fecha_inicio_display = str(stats['fecha_inicio'])
-            fecha_fin_display = str(stats['fecha_fin'])
-            st.metric("📅 Período", f"{fecha_inicio_display} → {fecha_fin_display}")
-        else:
-            st.metric("📅 Período", "Sin datos")
-    
-    with col3:
-        # Botón para actualizar datos
-        if st.button("🔄 Actualizar Base de Datos", use_container_width=True):
-            with st.spinner("Descargando HTML histórico... (5-10 minutos)"):
-                try:
-                    results = scraper.ejecutar_scraping_completo()
-                    st.success(f"✅ Proceso completado!")
-                    st.json(results)
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"❌ Error descargando: {e}")
-                    logging.error(f"Error en scraping: {e}")
-    
-    # Mostrar detalles por fuente si existen datos
-    if stats and stats.get('por_fuente'):
-        with st.expander("📊 Detalles por fuente"):
-            for fuente, cantidad in stats['por_fuente'].items():
-                st.write(f"• **{fuente}**: {cantidad} días")
-    
-    st.divider()
+    # Mostrar estadísticas en el sidebar solo para esta pestaña
+    if selected_tab == "🔍 Buscador Histórico":
+        with st.sidebar:
+            st.divider()
+            st.header("📊 Base de Datos Histórica")
+            
+            if stats and stats.get('total', 0) > 0:
+                st.metric("📁 Total boletines HTML", stats.get('total', 0))
+                
+                if stats.get('por_fuente'):
+                    st.subheader("Por fuente:")
+                    for fuente, cantidad in stats['por_fuente'].items():
+                        st.write(f"• **{fuente}**: {cantidad} días")
+                
+                if stats.get('fecha_inicio') and stats.get('fecha_fin'):
+                    fecha_inicio_display = str(stats['fecha_inicio'])
+                    fecha_fin_display = str(stats['fecha_fin'])
+                    st.write(f"📅 **Período**: {fecha_inicio_display} → {fecha_fin_display}")
+            else:
+                st.warning("⚠️ Base de datos vacía")
+            
+            st.divider()
+            
+            # Botón para actualizar datos
+            if st.button("🔄 Actualizar Base de Datos"):
+                with st.spinner("Descargando HTML histórico... (5-10 minutos)"):
+                    try:
+                        results = scraper.ejecutar_scraping_completo()
+                        st.success(f"✅ Proceso completado!")
+                        st.json(results)
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"❌ Error descargando: {e}")
+                        logging.error(f"Error en scraping: {e}")
     
     # Interfaz principal
     if not stats or stats.get('total', 0) == 0:
