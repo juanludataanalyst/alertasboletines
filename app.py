@@ -27,9 +27,7 @@ load_css("style.css")
 def main():
     # Verificar si el usuario está autenticado
     if 'user' not in st.session_state:
-        # Mostrar página de autenticación
-        st.title("📄 Sistema de Boletines Oficiales")
-        st.markdown("Inicia sesión para acceder al sistema completo")
+        # Mostrar página de autenticación sin texto adicional
         show_auth_page()
     else:
         # Usuario autenticado - mostrar sistema completo con pestañas
@@ -45,13 +43,19 @@ def main():
         
         st.divider()
         
-        # Crear pestañas del sistema
-        tab1, tab2 = st.tabs(["🔔 Alertas por Email", "🔍 Buscador Histórico"])
+        # Navegación lateral con pestañas independientes
+        with st.sidebar:
+            st.header("📋 Navegación")
+            selected_tab = st.radio(
+                "Selecciona una sección:",
+                ["🔔 Alertas por Email", "🔍 Buscador Histórico"],
+                label_visibility="collapsed"
+            )
         
-        with tab1:
+        # Mostrar contenido según la pestaña seleccionada
+        if selected_tab == "🔔 Alertas por Email":
             show_alertas_tab()
-        
-        with tab2:
+        else:  # "🔍 Buscador Histórico"
             show_buscador_tab()
 
 if __name__ == "__main__":

@@ -27,30 +27,28 @@ def show_buscador_tab():
     scraper = init_scraper()
     buscador = init_buscador()
     
-    # Sidebar con estadísticas
-    with st.sidebar:
-        st.header("📊 Base de Datos Histórica")
-        stats = db.obtener_estadisticas()
-        
+    # Obtener estadísticas
+    stats = db.obtener_estadisticas()
+    
+    # Mostrar estadísticas en la parte superior del contenido principal
+    col1, col2, col3 = st.columns(3)
+    with col1:
         if stats and stats.get('total', 0) > 0:
-            st.metric("📁 Total boletines HTML", stats.get('total', 0))
-            
-            if stats.get('por_fuente'):
-                st.subheader("Por fuente:")
-                for fuente, cantidad in stats['por_fuente'].items():
-                    st.write(f"• **{fuente}**: {cantidad} días")
-            
-            if stats.get('fecha_inicio') and stats.get('fecha_fin'):
-                fecha_inicio_display = str(stats['fecha_inicio'])
-                fecha_fin_display = str(stats['fecha_fin'])
-                st.write(f"📅 **Período**: {fecha_inicio_display} → {fecha_fin_display}")
+            st.metric("📁 Total boletines", stats.get('total', 0))
         else:
-            st.warning("⚠️ Base de datos vacía")
-        
-        st.divider()
-        
+            st.metric("📁 Total boletines", 0)
+    
+    with col2:
+        if stats.get('fecha_inicio') and stats.get('fecha_fin'):
+            fecha_inicio_display = str(stats['fecha_inicio'])
+            fecha_fin_display = str(stats['fecha_fin'])
+            st.metric("📅 Período", f"{fecha_inicio_display} → {fecha_fin_display}")
+        else:
+            st.metric("📅 Período", "Sin datos")
+    
+    with col3:
         # Botón para actualizar datos
-        if st.button("🔄 Actualizar Base de Datos"):
+        if st.button("🔄 Actualizar Base de Datos", use_container_width=True):
             with st.spinner("Descargando HTML histórico... (5-10 minutos)"):
                 try:
                     results = scraper.ejecutar_scraping_completo()
@@ -60,6 +58,14 @@ def show_buscador_tab():
                 except Exception as e:
                     st.error(f"❌ Error descargando: {e}")
                     logging.error(f"Error en scraping: {e}")
+    
+    # Mostrar detalles por fuente si existen datos
+    if stats and stats.get('por_fuente'):
+        with st.expander("📊 Detalles por fuente"):
+            for fuente, cantidad in stats['por_fuente'].items():
+                st.write(f"• **{fuente}**: {cantidad} días")
+    
+    st.divider()
     
     # Interfaz principal
     if not stats or stats.get('total', 0) == 0:
