@@ -43,7 +43,6 @@ MUNICIPIOS_BADAJOZ = [
 ]
 
 def show_alertas_tab():
-    st.write(st.session_state.user)
     # --- PANEL DE CONTROL (DASHBOARD) ---
     user_email = st.session_state.user['email']
     user_id = st.session_state.user['id']
@@ -150,15 +149,12 @@ def show_alertas_tab():
             elif parts:
                 nuevas_menciones_procesadas.append(parts[0])
 
-        # Combinar y eliminar duplicados
-        # (la conversión a tupla es para poder usar 'set' con listas anidadas)
-        menciones_existentes_tuples = [tuple(m) if isinstance(m, list) else m for m in menciones_seleccionadas_existentes]
-        nuevas_menciones_tuples = [tuple(m) if isinstance(m, list) else m for m in nuevas_menciones_procesadas]
-        
-        menciones_finales_tuples = sorted(list(set(menciones_existentes_tuples + nuevas_menciones_tuples)), key=lambda x: str(x))
-        
-        # Convertir de nuevo a listas
-        menciones_finales = [list(m) if isinstance(m, tuple) else m for m in menciones_finales_tuples]
+        menciones_finales = list(menciones_seleccionadas_existentes)
+        for nueva_mencion in nuevas_menciones_procesadas:
+            if nueva_mencion not in menciones_finales:
+                menciones_finales.append(nueva_mencion)
+
+        menciones_finales.sort(key=str)
 
         fecha_suscripcion_final = str(suscripcion_hasta) if suscripcion_activa else str(datetime.date.today() + datetime.timedelta(days=30))
 
