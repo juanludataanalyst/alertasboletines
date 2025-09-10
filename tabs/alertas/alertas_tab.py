@@ -92,37 +92,37 @@ def show_alertas_tab():
         b2 = st.checkbox("Boletín Oficial de la Provincia (BOP)", value=("BOP" in boletines_guardados))
         b3 = st.checkbox("Boletín Oficial del Estado (BOE)", value=("BOE" in boletines_guardados))
 
-    with st.expander("📝 Mis Menciones Múltiples", expanded=True):
+    with st.expander("📝 Mis Menciones", expanded=True):
         st.markdown("""
-        **¿Cómo funcionan las menciones múltiples?**
-        - **Una línea = Una búsqueda completa**
-        - **Comas dentro de línea = Búsqueda AND** (todas las palabras deben aparecer)
-        - **Ejemplo**: `licitación, obra pública` solo encuentra textos que contengan AMBAS palabras
+        **¿Cómo configurar tus menciones?**
+        - **Una línea = Una búsqueda**
+        - **Ejemplo simple**: `licitación` → Encuentra cualquier texto que mencione "licitación"
+        - **Ejemplo múltiple**: `subvención, empresas` → Encuentra solo textos que mencionen ambas palabras juntas
         """)
         
-        st.write("**Menciones Múltiples Guardadas**")
+        st.write("**Menciones Guardadas**")
         menciones_guardadas = preferencias.get('menciones', []) or []
         menciones_seleccionadas_existentes = st.multiselect(
-            "Tus menciones múltiples actuales. Desmárcalas para eliminarlas.",
+            "Tus menciones actuales. Desmárcalas para eliminarlas.",
             options=menciones_guardadas,
             default=menciones_guardadas
         )
         
         # Mostrar preview de las menciones existentes
         if menciones_seleccionadas_existentes:
-            with st.expander("👁️ Preview de tus menciones"):
+            with st.expander("👁️ Vista previa de tus menciones"):
                 for i, mencion in enumerate(menciones_seleccionadas_existentes, 1):
                     palabras = [p.strip() for p in mencion.split(',') if p.strip()]
                     if len(palabras) > 1:
-                        st.write(f"{i}. **Búsqueda AND**: {' + '.join(palabras)}")
+                        st.write(f"{i}. Buscar: **{' + '.join(palabras)}** (todas estas palabras juntas)")
                     else:
-                        st.write(f"{i}. **Búsqueda simple**: {palabras[0]}")
+                        st.write(f"{i}. Buscar: **{palabras[0]}**")
 
-        st.write("**Añadir Nuevas Menciones Múltiples**")
+        st.write("**Añadir Nuevas Menciones**")
         nuevas_menciones_texto = st.text_area(
-            "Escribe nuevas menciones múltiples (una por línea):",
+            "Escribe nuevas menciones (una por línea):",
             placeholder="licitación, obra pública\ncontrato, servicios\nurbanismo, licencia\nsubvención, pymes",
-            help="Cada línea = una búsqueda. Separa palabras con comas para que TODAS deban aparecer juntas"
+            help="Una línea por búsqueda. Si quieres buscar varias palabras juntas, sepáralas con comas"
         )
 
     with st.expander("Configuración de Notificaciones", expanded=True):
@@ -140,7 +140,7 @@ def show_alertas_tab():
         if b2: boletines_seleccionados.append("BOP")
         if b3: boletines_seleccionados.append("BOE")
 
-        # Procesa las menciones múltiples (una por línea)
+        # Procesa las menciones (una por línea)
         nuevas_menciones = [m.strip() for m in nuevas_menciones_texto.split('\n') if m.strip()]
         menciones_finales = sorted(list(set(menciones_seleccionadas_existentes + nuevas_menciones)))
 
