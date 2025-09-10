@@ -44,23 +44,11 @@ MUNICIPIOS_BADAJOZ = [
 
 def show_alertas_tab():
     # --- PANEL DE CONTROL (DASHBOARD) ---
-    if 'user' not in st.session_state:
-        show_auth_page()
-        return
-        
     user_email = st.session_state.user['email']
     user_id = st.session_state.user['id']
 
-    # --- Barra de Navegación Superior ---
-    col1, col2 = st.columns([0.85, 0.15])
-    with col1:
-        st.header("🔔 Alertas de Boletines Oficiales")
-        st.caption(f"Bienvenido, {user_email}")
-    with col2:
-        if st.button("Cerrar Sesión"):
-            del st.session_state.user
-            st.rerun()
-    st.divider()
+    st.header("🔔 Configuración de Alertas")
+    st.markdown("Configura tus suscripciones para recibir alertas automáticas por email")
 
     # --- Contenido Principal ---
     # --- Cargar preferencias ---
