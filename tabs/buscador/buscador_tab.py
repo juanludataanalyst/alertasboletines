@@ -87,15 +87,24 @@ def show_buscador_tab(selected_tab):
         st.write(f"✅ **{len(municipios)} municipios** configurados")
     
     with col2:
-        st.write("**🔍 Menciones**")
+        st.write("**🔍 Menciones Múltiples**")
         menciones_text = st.text_area(
-            "Lista de menciones (una por línea):",
-            value="licitación\ncontrato\nurbanismo",
+            "Lista de menciones múltiples (una por línea):",
+            value="licitación, obra pública\ncontrato, servicios\nurbanismo, licencia\nordenanza, tráfico\npresupuesto, municipal\nsubvención, asociación",
             height=120,
-            help="Palabras clave a buscar en todos los boletines"
+            help="Cada línea = una búsqueda. Separa palabras con comas para búsqueda AND (todas las palabras deben aparecer)"
         )
         menciones = [m.strip() for m in menciones_text.split('\n') if m.strip()]
-        st.write(f"✅ **{len(menciones)} menciones** configuradas")
+        st.write(f"✅ **{len(menciones)} menciones múltiples** configuradas")
+        
+        # Mostrar preview de las menciones
+        with st.expander("👁️ Preview menciones múltiples"):
+            for i, mencion in enumerate(menciones, 1):
+                palabras = [p.strip() for p in mencion.split(',') if p.strip()]
+                if len(palabras) > 1:
+                    st.write(f"{i}. **Búsqueda AND**: {' + '.join(palabras)}")
+                else:
+                    st.write(f"{i}. **Búsqueda simple**: {palabras[0]}")
     
     # Configuración adicional
     col3, col4 = st.columns(2)
