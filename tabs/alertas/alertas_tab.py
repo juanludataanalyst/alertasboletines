@@ -43,6 +43,7 @@ MUNICIPIOS_BADAJOZ = [
 ]
 
 def show_alertas_tab():
+    st.write(st.session_state.user)
     # --- PANEL DE CONTROL (DASHBOARD) ---
     user_email = st.session_state.user['email']
     user_id = st.session_state.user['id']
