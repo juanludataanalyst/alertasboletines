@@ -92,19 +92,37 @@ def show_alertas_tab():
         b2 = st.checkbox("Boletín Oficial de la Provincia (BOP)", value=("BOP" in boletines_guardados))
         b3 = st.checkbox("Boletín Oficial del Estado (BOE)", value=("BOE" in boletines_guardados))
 
-    with st.expander("📝 Mis Menciones", expanded=True):
-        st.write("**Palabras Clave Guardadas**")
+    with st.expander("📝 Mis Menciones Múltiples", expanded=True):
+        st.markdown("""
+        **¿Cómo funcionan las menciones múltiples?**
+        - **Una línea = Una búsqueda completa**
+        - **Comas dentro de línea = Búsqueda AND** (todas las palabras deben aparecer)
+        - **Ejemplo**: `licitación, obra pública` solo encuentra textos que contengan AMBAS palabras
+        """)
+        
+        st.write("**Menciones Múltiples Guardadas**")
         menciones_guardadas = preferencias.get('menciones', []) or []
         menciones_seleccionadas_existentes = st.multiselect(
-            "Tus palabras clave actuales. Desmárcalas para eliminarlas.",
+            "Tus menciones múltiples actuales. Desmárcalas para eliminarlas.",
             options=menciones_guardadas,
             default=menciones_guardadas
         )
+        
+        # Mostrar preview de las menciones existentes
+        if menciones_seleccionadas_existentes:
+            with st.expander("👁️ Preview de tus menciones"):
+                for i, mencion in enumerate(menciones_seleccionadas_existentes, 1):
+                    palabras = [p.strip() for p in mencion.split(',') if p.strip()]
+                    if len(palabras) > 1:
+                        st.write(f"{i}. **Búsqueda AND**: {' + '.join(palabras)}")
+                    else:
+                        st.write(f"{i}. **Búsqueda simple**: {palabras[0]}")
 
-        st.write("**Añadir Nuevas Palabras Clave**")
+        st.write("**Añadir Nuevas Menciones Múltiples**")
         nuevas_menciones_texto = st.text_area(
-            "Escribe nuevas palabras clave separadas por comas:",
-            placeholder="Ej: fondos europeos, digitalización, pymes"
+            "Escribe nuevas menciones múltiples (una por línea):",
+            placeholder="licitación, obra pública\ncontrato, servicios\nurbanismo, licencia\nsubvención, pymes",
+            help="Cada línea = una búsqueda. Separa palabras con comas para que TODAS deban aparecer juntas"
         )
 
     with st.expander("Configuración de Notificaciones", expanded=True):
@@ -122,8 +140,8 @@ def show_alertas_tab():
         if b2: boletines_seleccionados.append("BOP")
         if b3: boletines_seleccionados.append("BOE")
 
-        # Procesa las menciones para guardarlas como una lista de strings
-        nuevas_menciones = [m.strip() for m in nuevas_menciones_texto.split(',') if m.strip()]
+        # Procesa las menciones múltiples (una por línea)
+        nuevas_menciones = [m.strip() for m in nuevas_menciones_texto.split('\n') if m.strip()]
         menciones_finales = sorted(list(set(menciones_seleccionadas_existentes + nuevas_menciones)))
 
         fecha_suscripcion_final = str(suscripcion_hasta) if suscripcion_activa else str(datetime.date.today() + datetime.timedelta(days=30))
