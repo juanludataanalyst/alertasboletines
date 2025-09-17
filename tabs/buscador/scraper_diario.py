@@ -88,6 +88,7 @@ def ejecutar_actualizacion_diaria():
         # TEST DIRECTO con conexión nueva
         logging.info("🔍 DIAGNÓSTICO: Verificando con conexión SQLite directa...")
         import sqlite3
+        db_path = scraper.db.db_path  # Usar el path del scraper
         conn_test = sqlite3.connect(db_path)
         cursor_test = conn_test.cursor()
         cursor_test.execute("SELECT COUNT(*) FROM boletines")
