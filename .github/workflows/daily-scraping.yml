@@ -1,0 +1,57 @@
+name: Daily Boletines Scraping
+
+on:
+  schedule:
+    # Ejecutar todos los días a las 8:00 AM UTC (9:00 AM España en invierno, 10:00 AM en verano)
+    - cron: '0 8 * * *'
+  workflow_dispatch: # Permite ejecutar manualmente desde GitHub
+
+jobs:
+  scrape-and-update:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: Run daily scraping
+      working-directory: tabs/buscador
+      run: |
+        python scraper_diario.py
+    
+    - name: Commit and push if changes
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action Bot"
+        git add tabs/buscador/data/boletines.db
+        git add tabs/buscador/logs/ || true
+        if git diff --staged --quiet; then
+          echo "No hay cambios para commitear"
+        else
+          git commit -m "🤖 Actualización diaria de boletines - $(date +'%Y-%m-%d %H:%M')"
+          git push
+        fi
+    
+    - name: Display scraping summary
+      working-directory: tabs/buscador
+      run: |
+        python -c "
+        from database_simple import BoletinesDBSimple
+        db = BoletinesDBSimple('data/boletines.db')
+        stats = db.obtener_estadisticas()
+        print('📊 Estadísticas de la base de datos:')
+        print(f'📚 Total boletines: {stats.get(\"total\", \"N/A\")}')
+        print(f'📑 Por fuente: {stats.get(\"por_fuente\", {})}')
+        print(f'📅 Rango: {stats.get(\"fecha_inicio\", \"N/A\")} - {stats.get(\"fecha_fin\", \"N/A\")}')
+        print(f'🕒 Última actualización: {stats.get(\"ultimo_scraping\", \"N/A\")}')
+        "
