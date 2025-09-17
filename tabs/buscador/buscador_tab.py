@@ -23,47 +23,7 @@ def show_buscador_tab(selected_tab):
     def init_buscador():
         return BuscadorHistorico("tabs/buscador/data/boletines.db")
     
-    @st.cache_data(ttl=3600)  # Cache por 1 hora
-    def verificar_y_cargar_datos():
-        """Verificar si la BD está vacía y cargar datos automáticamente"""
-        db_temp = BoletinesDBSimple("tabs/buscador/data/boletines.db")
-        stats = db_temp.obtener_estadisticas()
-        
-        if stats.get('total', 0) == 0:
-            st.info("🔄 Base de datos vacía. Descargando datos históricos automáticamente...")
-            progress_bar = st.progress(0, text="Iniciando descarga...")
-            
-            try:
-                scraper_temp = ScraperSimple("tabs/buscador/data/boletines.db")
-                
-                # Descargar últimos 90 días (3 meses)
-                progress_bar.progress(10, text="Descargando DOE...")
-                from scraper_simple import generar_fechas_ultimo_trimestre
-                fechas = generar_fechas_ultimo_trimestre()
-                
-                progress_bar.progress(30, text="Procesando DOE...")
-                scraper_temp.scraping_doe_historico(fechas)
-                
-                progress_bar.progress(60, text="Procesando BOP...")
-                scraper_temp.scraping_bop_historico(fechas)
-                
-                progress_bar.progress(90, text="Procesando BOE...")
-                scraper_temp.scraping_boe_historico(fechas)
-                
-                progress_bar.progress(100, text="¡Datos cargados correctamente!")
-                st.success("✅ Base de datos inicializada con datos de los últimos 3 meses")
-                
-                # Limpiar cache para refrescar estadísticas
-                st.cache_data.clear()
-                
-            except Exception as e:
-                st.error(f"❌ Error cargando datos: {str(e)}")
-                progress_bar.empty()
-                
-        return True
-    
-    # Verificar y cargar datos automáticamente
-    verificar_y_cargar_datos()
+    # La verificación y carga automática se hace en app.py al inicio
     
     db = init_database()
     scraper = init_scraper()

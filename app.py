@@ -23,8 +23,52 @@ def load_css(file_name):
 
 load_css("style.css")
 
+# --- VERIFICACIÓN Y CARGA AUTOMÁTICA DE BD ---
+@st.cache_data(ttl=3600)  # Cache por 1 hora
+def verificar_y_cargar_bd():
+    """Verificar si la BD está vacía y cargar datos automáticamente al inicio"""
+    import sys
+    import os
+    sys.path.append(os.path.join(os.path.dirname(__file__), 'tabs', 'buscador'))
+    
+    from database_simple import BoletinesDBSimple
+    from scraper_simple import ScraperSimple, generar_fechas_ultimo_trimestre
+    
+    db_path = os.path.join(os.path.dirname(__file__), 'tabs', 'buscador', 'data', 'boletines.db')
+    db = BoletinesDBSimple(db_path)
+    stats = db.obtener_estadisticas()
+    
+    if stats.get('total', 0) == 0:
+        st.info("🔄 Inicializando base de datos. Descargando datos históricos...")
+        progress_bar = st.progress(0, text="Iniciando descarga...")
+        
+        try:
+            scraper = ScraperSimple(db_path)
+            fechas = generar_fechas_ultimo_trimestre()
+            
+            progress_bar.progress(30, text="Descargando DOE...")
+            scraper.scraping_doe_historico(fechas)
+            
+            progress_bar.progress(60, text="Descargando BOP...")
+            scraper.scraping_bop_historico(fechas)
+            
+            progress_bar.progress(90, text="Descargando BOE...")
+            scraper.scraping_boe_historico(fechas)
+            
+            progress_bar.progress(100, text="¡Datos cargados!")
+            st.success("✅ Base de datos inicializada correctamente")
+            progress_bar.empty()
+            
+        except Exception as e:
+            st.error(f"❌ Error cargando datos: {str(e)}")
+            progress_bar.empty()
+    
+    return True
+
 # --- LÓGICA PRINCIPAL CON AUTENTICACIÓN GLOBAL ---
 def main():
+    # Verificar y cargar BD al inicio de la app
+    verificar_y_cargar_bd()
     # Verificar si el usuario está autenticado
     if 'user' not in st.session_state:
         # Mostrar página de autenticación sin texto adicional
