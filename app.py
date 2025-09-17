@@ -39,29 +39,62 @@ def verificar_y_cargar_bd():
     stats = db.obtener_estadisticas()
     
     if stats.get('total', 0) == 0:
-        st.info("🔄 Inicializando base de datos. Descargando datos históricos...")
-        progress_bar = st.progress(0, text="Iniciando descarga...")
+        st.info("🔄 Primera ejecución detectada. Inicializando base de datos con datos históricos...")
+        
+        # Contenedor para logs en tiempo real
+        log_container = st.container()
+        progress_bar = st.progress(0)
+        status_text = st.empty()
         
         try:
             scraper = ScraperSimple(db_path)
             fechas = generar_fechas_ultimo_trimestre()
             
-            progress_bar.progress(30, text="Descargando DOE...")
-            scraper.scraping_doe_historico(fechas)
+            with log_container:
+                st.write(f"📅 **Período a descargar:** {len(fechas)} días (últimos 3 meses)")
+                st.write("📋 **Fuentes:** DOE, BOP Badajoz, BOE")
             
-            progress_bar.progress(60, text="Descargando BOP...")
-            scraper.scraping_bop_historico(fechas)
+            # DOE
+            status_text.text("📄 Descargando DOE (Diario Oficial de Extremadura)...")
+            progress_bar.progress(10)
+            doe_result = scraper.scraping_doe_historico(fechas)
+            with log_container:
+                st.write(f"✅ **DOE completado:** {doe_result} boletines descargados")
             
-            progress_bar.progress(90, text="Descargando BOE...")
-            scraper.scraping_boe_historico(fechas)
+            # BOP
+            status_text.text("📄 Descargando BOP (Boletín Oficial de Badajoz)...")
+            progress_bar.progress(50)
+            bop_result = scraper.scraping_bop_historico(fechas)
+            with log_container:
+                st.write(f"✅ **BOP completado:** {bop_result} boletines descargados")
             
-            progress_bar.progress(100, text="¡Datos cargados!")
-            st.success("✅ Base de datos inicializada correctamente")
+            # BOE
+            status_text.text("📄 Descargando BOE (Boletín Oficial del Estado)...")
+            progress_bar.progress(80)
+            boe_result = scraper.scraping_boe_historico(fechas)
+            with log_container:
+                st.write(f"✅ **BOE completado:** {boe_result} boletines descargados")
+            
+            total_descargados = doe_result + bop_result + boe_result
+            
+            progress_bar.progress(100)
+            status_text.text("🎉 ¡Inicialización completada!")
+            
+            st.success(f"✅ **Base de datos lista:** {total_descargados} boletines descargados")
+            st.balloons()
+            
+            # Limpiar elementos de progreso después de 3 segundos
+            import time
+            time.sleep(2)
             progress_bar.empty()
+            status_text.empty()
             
         except Exception as e:
-            st.error(f"❌ Error cargando datos: {str(e)}")
+            st.error(f"❌ **Error durante la inicialización:** {str(e)}")
+            with log_container:
+                st.write("🔄 La aplicación seguirá funcionando, pero puede que algunos datos no estén disponibles.")
             progress_bar.empty()
+            status_text.empty()
     
     return True
 
