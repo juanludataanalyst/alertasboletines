@@ -79,11 +79,13 @@ def ejecutar_actualizacion_diaria():
         # Calcular totales
         total_nuevos = sum(resultados.values())
         
-        # Limpiar datos antiguos (mantener solo últimos 3 meses)
+        # Limpiar datos antiguos (mantener solo últimos 3 meses = 90 días)
         logging.info("🧹 Limpiando datos antiguos (>90 días)...")
         eliminados = scraper.db.limpiar_datos_antiguos(dias=90)
         if eliminados > 0:
             logging.info(f"🗑️  Eliminados {eliminados} registros antiguos")
+        else:
+            logging.info("✅ No hay registros antiguos para eliminar")
         
         # TEST DIRECTO con conexión nueva
         logging.info("🔍 DIAGNÓSTICO: Verificando con conexión SQLite directa...")
