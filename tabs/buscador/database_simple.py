@@ -136,9 +136,10 @@ class BoletinesDBSimple:
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
+                # Convertir fecha YYYYMMDD a formato YYYY-MM-DD para comparación correcta
                 cursor.execute('''
                     DELETE FROM boletines 
-                    WHERE fecha < date('now', '-' || ? || ' days')
+                    WHERE date(substr(fecha, 1, 4) || '-' || substr(fecha, 5, 2) || '-' || substr(fecha, 7, 2)) < date('now', '-' || ? || ' days')
                 ''', (dias,))
                 
                 eliminados = cursor.rowcount
