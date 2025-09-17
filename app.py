@@ -35,8 +35,24 @@ def verificar_y_cargar_bd():
     from scraper_simple import ScraperSimple, generar_fechas_ultimo_trimestre
     
     db_path = os.path.join(os.path.dirname(__file__), 'tabs', 'buscador', 'data', 'boletines.db')
+    
+    # DEBUG: Mostrar información de la BD
+    st.write("🔍 **DEBUG - Estado de la base de datos:**")
+    st.write(f"📁 **Path BD:** `{db_path}`")
+    st.write(f"📄 **Archivo existe:** {os.path.exists(db_path)}")
+    
+    if os.path.exists(db_path):
+        file_size = os.path.getsize(db_path) / (1024 * 1024)  # MB
+        st.write(f"💾 **Tamaño archivo:** {file_size:.1f} MB")
+    
     db = BoletinesDBSimple(db_path)
     stats = db.obtener_estadisticas()
+    
+    st.write(f"📊 **Total boletines en BD:** {stats.get('total', 0)}")
+    st.write(f"📋 **Por fuente:** {stats.get('por_fuente', {})}")
+    st.write(f"📅 **Rango fechas:** {stats.get('fecha_inicio', 'N/A')} - {stats.get('fecha_fin', 'N/A')}")
+    
+    st.divider()
     
     if stats.get('total', 0) == 0:
         st.info("🔄 Primera ejecución detectada. Inicializando base de datos con datos históricos...")
@@ -54,24 +70,31 @@ def verificar_y_cargar_bd():
                 st.write(f"📅 **Período a descargar:** {len(fechas)} días (últimos 3 meses)")
                 st.write("📋 **Fuentes:** DOE, BOP Badajoz, BOE")
             
+            # Carga incremental para evitar timeout - solo últimos 30 días inicialmente
+            fechas_iniciales = fechas[-30:]  # Solo últimos 30 días
+            
+            with log_container:
+                st.write(f"⚡ **Carga inicial rápida:** {len(fechas_iniciales)} días más recientes")
+                st.write("📝 GitHub Actions completará el histórico completo automáticamente")
+            
             # DOE
             status_text.text("📄 Descargando DOE (Diario Oficial de Extremadura)...")
             progress_bar.progress(10)
-            doe_result = scraper.scraping_doe_historico(fechas)
+            doe_result = scraper.scraping_doe_historico(fechas_iniciales)
             with log_container:
                 st.write(f"✅ **DOE completado:** {doe_result} boletines descargados")
             
             # BOP
             status_text.text("📄 Descargando BOP (Boletín Oficial de Badajoz)...")
             progress_bar.progress(50)
-            bop_result = scraper.scraping_bop_historico(fechas)
+            bop_result = scraper.scraping_bop_historico(fechas_iniciales)
             with log_container:
                 st.write(f"✅ **BOP completado:** {bop_result} boletines descargados")
             
             # BOE
             status_text.text("📄 Descargando BOE (Boletín Oficial del Estado)...")
             progress_bar.progress(80)
-            boe_result = scraper.scraping_boe_historico(fechas)
+            boe_result = scraper.scraping_boe_historico(fechas_iniciales)
             with log_container:
                 st.write(f"✅ **BOE completado:** {boe_result} boletines descargados")
             
