@@ -24,10 +24,10 @@ logging.basicConfig(
     ]
 )
 
-def obtener_fechas_recientes(dias=5):
+def obtener_fechas_recientes(dias=3):
     """
     Obtener fechas de los últimos N días
-    Se usa 5 días para asegurar que no se pierda ningún boletín
+    Se usa 3 días para mantenimiento diario optimizado
     (incluye fines de semana y posibles fallos anteriores)
     """
     fechas = []
@@ -55,8 +55,8 @@ def ejecutar_actualizacion_diaria():
         total_inicial = stats_inicial.get('total', 0)
         logging.info(f"📊 Boletines en BD antes de actualizar: {total_inicial}")
         
-        # Obtener fechas recientes (últimos 5 días para mantenimiento diario)
-        fechas = obtener_fechas_recientes(dias=5)
+        # Obtener fechas recientes (últimos 3 días para mantenimiento diario)
+        fechas = obtener_fechas_recientes(dias=3)
         logging.info(f"📅 Procesando fechas: {fechas[0]} a {fechas[-1]} ({len(fechas)} días)")
         
         # Ejecutar scraping para cada fuente
