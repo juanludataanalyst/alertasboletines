@@ -49,6 +49,12 @@ class BoletinesDBSimple:
                 
                 if cursor.rowcount > 0:
                     logging.info(f"Insertado/Actualizado: {fuente} - {fecha}")
+                    
+                    # DIAGNÓSTICO: Verificar inmediatamente después del insert
+                    cursor.execute("SELECT COUNT(*) FROM boletines")
+                    count_after_insert = cursor.fetchone()[0]
+                    logging.info(f"DEBUG: Registros después de insert: {count_after_insert}")
+                    
                     return True
                 return False
         except sqlite3.Error as e:

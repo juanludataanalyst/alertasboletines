@@ -85,9 +85,26 @@ def ejecutar_actualizacion_diaria():
         if eliminados > 0:
             logging.info(f"🗑️  Eliminados {eliminados} registros antiguos")
         
-        # Estadísticas finales
+        # TEST DIRECTO con conexión nueva
+        logging.info("🔍 DIAGNÓSTICO: Verificando con conexión SQLite directa...")
+        import sqlite3
+        conn_test = sqlite3.connect(db_path)
+        cursor_test = conn_test.cursor()
+        cursor_test.execute("SELECT COUNT(*) FROM boletines")
+        count_directo = cursor_test.fetchone()[0]
+        logging.info(f"📊 CONEXIÓN DIRECTA: {count_directo} registros")
+        
+        cursor_test.execute("SELECT fuente, COUNT(*) FROM boletines GROUP BY fuente")
+        por_fuente_directo = cursor_test.fetchall()
+        logging.info(f"📋 CONEXIÓN DIRECTA por fuente: {por_fuente_directo}")
+        conn_test.close()
+        
+        # Estadísticas finales usando la función normal
+        logging.info("🔍 DIAGNÓSTICO: Verificando con función obtener_estadisticas()...")
         stats_final = scraper.db.obtener_estadisticas()
         total_final = stats_final.get('total', 0)
+        logging.info(f"📊 FUNCIÓN NORMAL: {total_final} registros")
+        logging.info(f"📋 FUNCIÓN NORMAL por fuente: {stats_final.get('por_fuente', {})}")
         
         # Logging de resultados
         logging.info("=== Resumen de actualización ===")
