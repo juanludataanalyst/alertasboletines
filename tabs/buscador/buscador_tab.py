@@ -135,26 +135,24 @@ def show_buscador_tab(selected_tab):
             # BD vacía - usar fechas por defecto
             max_date = datetime.now().date()
             min_date = max_date - timedelta(days=90)
-            
-            col4_1, col4_2 = st.columns(2)
-            with col4_1:
-                fecha_inicio = st.date_input(
-                    "📅 Fecha inicio:",
-                    value=max_date - timedelta(days=30),
-                    min_value=min_date,
-                    max_value=max_date
-                )
-            
-            with col4_2:
-                fecha_fin = st.date_input(
-                    "📅 Fecha fin:",
-                    value=max_date,
-                    min_value=min_date,
-                    max_value=max_date
-                )
-        else:
-            st.error("No se puede determinar el rango de fechas disponible")
-            st.stop()
+        
+        # Crear campos de fecha (fuera del if/else)
+        col4_1, col4_2 = st.columns(2)
+        with col4_1:
+            fecha_inicio = st.date_input(
+                "📅 Fecha inicio:",
+                value=max_date - timedelta(days=30),
+                min_value=min_date,
+                max_value=max_date
+            )
+        
+        with col4_2:
+            fecha_fin = st.date_input(
+                "📅 Fecha fin:",
+                value=max_date,
+                min_value=min_date,
+                max_value=max_date
+            )
     
     # Validaciones
     if fecha_inicio > fecha_fin:
