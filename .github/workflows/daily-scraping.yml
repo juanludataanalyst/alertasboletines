@@ -22,7 +22,13 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
-        python-version: '3.11'
+        python-version: '3.12'  # Mismo que local
+    
+    - name: Configure SQLite environment
+      run: |
+        echo "Configurando entorno SQLite igual que local..."
+        python -c "import sqlite3; print(f'SQLite version: {sqlite3.sqlite_version}')"
+        python -c "import sys; print(f'Python version: {sys.version}')"
     
     - name: Install dependencies
       run: |
@@ -32,7 +38,43 @@ jobs:
     - name: Run daily scraping
       working-directory: tabs/buscador
       run: |
+        echo "🔍 Estado BD ANTES del scraping:"
+        ls -la data/boletines.db || echo "BD no existe"
+        python -c "
+        import sys, os
+        sys.path.append('.')
+        from database_simple import BoletinesDBSimple
+        if os.path.exists('data/boletines.db'):
+            db = BoletinesDBSimple('data/boletines.db')
+            stats = db.obtener_estadisticas()
+            print(f'📊 ANTES: {stats.get(\"total\", 0)} registros')
+        else:
+            print('📊 ANTES: BD no existe')
+        " || true
+        
+        echo "🚀 Ejecutando scraping..."
         python scraper_diario.py
+        
+        echo "🔍 Estado BD DESPUÉS del scraping:"
+        ls -la data/boletines.db
+        python -c "
+        import sys
+        sys.path.append('.')
+        from database_simple import BoletinesDBSimple
+        db = BoletinesDBSimple('data/boletines.db')
+        stats = db.obtener_estadisticas()
+        print(f'📊 DESPUÉS: {stats.get(\"total\", 0)} registros')
+        print(f'📋 Por fuente: {stats.get(\"por_fuente\", {})}')
+        
+        # Test de integridad
+        import sqlite3
+        conn = sqlite3.connect('data/boletines.db')
+        cursor = conn.cursor()
+        cursor.execute('PRAGMA integrity_check;')
+        integrity = cursor.fetchone()[0]
+        print(f'✅ Integridad: {integrity}')
+        conn.close()
+        "
     
     - name: Commit and push if changes
       run: |
