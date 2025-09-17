@@ -23,6 +23,48 @@ def show_buscador_tab(selected_tab):
     def init_buscador():
         return BuscadorHistorico("tabs/buscador/data/boletines.db")
     
+    @st.cache_data(ttl=3600)  # Cache por 1 hora
+    def verificar_y_cargar_datos():
+        """Verificar si la BD está vacía y cargar datos automáticamente"""
+        db_temp = BoletinesDBSimple("tabs/buscador/data/boletines.db")
+        stats = db_temp.obtener_estadisticas()
+        
+        if stats.get('total', 0) == 0:
+            st.info("🔄 Base de datos vacía. Descargando datos históricos automáticamente...")
+            progress_bar = st.progress(0, text="Iniciando descarga...")
+            
+            try:
+                scraper_temp = ScraperSimple("tabs/buscador/data/boletines.db")
+                
+                # Descargar últimos 90 días (3 meses)
+                progress_bar.progress(10, text="Descargando DOE...")
+                from scraper_simple import generar_fechas_ultimo_trimestre
+                fechas = generar_fechas_ultimo_trimestre()
+                
+                progress_bar.progress(30, text="Procesando DOE...")
+                scraper_temp.scraping_doe_historico(fechas)
+                
+                progress_bar.progress(60, text="Procesando BOP...")
+                scraper_temp.scraping_bop_historico(fechas)
+                
+                progress_bar.progress(90, text="Procesando BOE...")
+                scraper_temp.scraping_boe_historico(fechas)
+                
+                progress_bar.progress(100, text="¡Datos cargados correctamente!")
+                st.success("✅ Base de datos inicializada con datos de los últimos 3 meses")
+                
+                # Limpiar cache para refrescar estadísticas
+                st.cache_data.clear()
+                
+            except Exception as e:
+                st.error(f"❌ Error cargando datos: {str(e)}")
+                progress_bar.empty()
+                
+        return True
+    
+    # Verificar y cargar datos automáticamente
+    verificar_y_cargar_datos()
+    
     db = init_database()
     scraper = init_scraper()
     buscador = init_buscador()
@@ -120,10 +162,19 @@ def show_buscador_tab(selected_tab):
     with col4:
         # Obtener rango disponible de la BD
         if stats.get('fecha_inicio') and stats.get('fecha_fin'):
-            fecha_inicio_str = str(stats['fecha_inicio'])
-            fecha_fin_str = str(stats['fecha_fin'])
-            min_date = datetime.strptime(fecha_inicio_str, "%Y%m%d").date()
-            max_date = datetime.strptime(fecha_fin_str, "%Y%m%d").date()
+            try:
+                fecha_inicio_str = str(stats['fecha_inicio'])
+                fecha_fin_str = str(stats['fecha_fin'])
+                min_date = datetime.strptime(fecha_inicio_str, "%Y%m%d").date()
+                max_date = datetime.strptime(fecha_fin_str, "%Y%m%d").date()
+            except (ValueError, TypeError):
+                # Si hay error parsing fechas, usar fechas por defecto
+                max_date = datetime.now().date()
+                min_date = max_date - timedelta(days=90)
+        else:
+            # BD vacía - usar fechas por defecto
+            max_date = datetime.now().date()
+            min_date = max_date - timedelta(days=90)
             
             col4_1, col4_2 = st.columns(2)
             with col4_1:

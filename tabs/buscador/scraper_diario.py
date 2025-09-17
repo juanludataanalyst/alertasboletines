@@ -55,8 +55,8 @@ def ejecutar_actualizacion_diaria():
         total_inicial = stats_inicial.get('total', 0)
         logging.info(f"📊 Boletines en BD antes de actualizar: {total_inicial}")
         
-        # Obtener fechas recientes (últimos 20 días para cubrir faltantes)
-        fechas = obtener_fechas_recientes(dias=20)
+        # Obtener fechas recientes (últimos 5 días para mantenimiento diario)
+        fechas = obtener_fechas_recientes(dias=5)
         logging.info(f"📅 Procesando fechas: {fechas[0]} a {fechas[-1]} ({len(fechas)} días)")
         
         # Ejecutar scraping para cada fuente
