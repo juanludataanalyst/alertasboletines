@@ -307,6 +307,24 @@ def check_boe(municipalities, mentions):
         logging.error(f"Error al acceder al BOE: {e}")
         return [], url, []
 
+# Verifica si hay contenido relevante en los resultados
+def tiene_contenido_relevante(results):
+    """
+    Verifica si hay algún municipio o mención encontrada en los resultados.
+    Retorna True si hay contenido relevante, False en caso contrario.
+    """
+    for fuente, data in results.items():
+        announcements, url, mentions = data
+        # Filtrar anuncios válidos (no placeholders)
+        valid_announcements = [a for a in announcements if a[1] != "No se encontró texto de anuncio específico."]
+
+        # Si hay anuncios válidos o menciones, retorna True
+        if valid_announcements or mentions:
+            return True
+
+    # No hay contenido relevante
+    return False
+
 # Formatea el cuerpo del email en HTML
 def format_email(results):
     today_str = datetime.now().strftime("%d/%m/%Y")
@@ -369,10 +387,6 @@ def format_email(results):
             html_content.append('</ul>')
             html_content.append(f'<p><strong>Enlace consultado:</strong> <a href="{url}" class="url-link">{url}</a></p>')
             html_content.append('<br>')
-        else:
-            html_content.append('<p>Ningún municipio nombrado hoy</p>')
-            html_content.append(f'<p><strong>Enlace consultado:</strong> <a href="{url}" class="url-link">{url}</a></p>')
-            html_content.append('<br>')
         html_content.append('<hr>')
 
         if mentions:
@@ -428,12 +442,17 @@ def ejecutar_busqueda_para_usuario(email, municipios, boletines, menciones):
         results["BOP Badajoz"] = check_bop_badajoz(municipios, menciones)
     if "BOE" in boletines:
         results["BOE"] = check_boe(municipios, menciones)
-    
+
+    # Validar si hay contenido relevante antes de enviar
+    if not tiene_contenido_relevante(results):
+        logging.info(f"Sin coincidencias encontradas para {email}. Email NO enviado.")
+        return "Sin coincidencias hoy. Email no enviado.", False
+
     cuerpo_email = format_email(results)
     logging.info(f"Cuerpo del email para {email}:\n{cuerpo_email}")
-    
+
     email_sent = send_email(cuerpo_email, email)
-    
+
     if email_sent:
         return "Búsqueda completada. Se ha enviado un correo con los resultados.", True
     else:
